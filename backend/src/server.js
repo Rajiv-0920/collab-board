@@ -6,11 +6,18 @@ import connectDB from './config/database.js';
 
 const PORT = 3000;
 
-app.get('/', (req, res) => {
-  res.send('Hello, World');
-});
+const startServer = async () => {
+  try {
+    await connectDB();
 
-app.listen(PORT, () => {
-  connectDB();
-  console.log(`Server is listening on the port: ${PORT}`);
-});
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+      console.log(`Listening on :${PORT}`);
+    });
+  } catch (error) {
+    console.error('Server failed to start:', error);
+    process.exit(1);
+  }
+};
+
+startServer();
