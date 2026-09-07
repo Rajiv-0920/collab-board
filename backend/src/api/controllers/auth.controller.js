@@ -19,3 +19,12 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+export const logout = async (req, res, next) => {
+  try {
+    await authService.logoutUser(req, res);
+    return sendResponse(res, 200, true, 'User logged out successfully');
+  } catch (error) {
+    next(error);
+  }
+};
