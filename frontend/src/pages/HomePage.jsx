@@ -1,0 +1,41 @@
+import { useDispatch } from 'react-redux';
+import { useGetMeQuery } from '../services/userApi';
+import { useLogoutMutation } from '../services/authApi';
+import { setCredentials } from '../store/authSlice';
+import { baseApi } from '../services/baseApi';
+import { useNavigate } from 'react-router';
+import { useEffect } from 'react';
+
+const HomePage = () => {
+  const { data: me, isLoading: isMeLoading } = useGetMeQuery();
+  const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    try {
+      await logout().unwrap();
+      dispatch(setCredentials(null));
+      dispatch(baseApi.util.resetApiState());
+      navigate('/auth/login');
+    } catch (err) {
+      console.error('Logout failed:', err);
+    }
+  };
+
+  if (isMeLoading) return <p>Loading...</p>;
+
+  if (!me) {
+    navigate('/auth/login');
+    return null;
+  }
+
+  return (
+    <div>
+      <h1>Welcome, {me.name}</h1>
+      <button onClick={handleLogout}>Logout</button>
+    </div>
+  );
+};
+
+export default HomePage;

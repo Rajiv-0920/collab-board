@@ -24,4 +24,4 @@ export const { setCredentials, clearCredentials } = authSlice.actions;
 
 export default authSlice.reducer;
 
-/* Store to localstorage for persistence */
+export const selectCurrentUser = (state) => state.auth.user;
