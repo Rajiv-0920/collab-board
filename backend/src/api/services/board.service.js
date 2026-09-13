@@ -2,6 +2,15 @@ import mongoose from 'mongoose';
 import Board from '../models/board.model.js';
 import BoardMember from '../models/boardMember.model.js';
 
+export const getBoardService = async (req) => {
+  const boardMember = await BoardMember.find({ userId: req.user._id });
+  if (!boardMember) throw new Error('Board member not found');
+  const board = await Board.find({
+    _id: { $in: boardMember.map((m) => m.boardId) },
+  });
+  return board;
+};
+
 export const createBoardService = async (req, { title, description }) => {
   const session = await mongoose.startSession();
   try {
