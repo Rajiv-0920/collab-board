@@ -4,7 +4,6 @@ import { useLogoutMutation } from '../services/authApi';
 import { setCredentials } from '../store/authSlice';
 import { baseApi } from '../services/baseApi';
 import { useNavigate } from 'react-router';
-import { useEffect } from 'react';
 
 const HomePage = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();

@@ -10,6 +10,6 @@ router.use('/auth', authRoutes);
 
 router.use('/user', userRoutes);
 
-router.use('/board', boardRoutes);
+router.use('/boards', boardRoutes);
 
 export default router;
