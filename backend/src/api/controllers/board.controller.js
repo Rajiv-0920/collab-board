@@ -21,7 +21,6 @@ export const createBoard = async (req, res, next) => {
 
 export const getBoardById = async (req, res, next) => {
   try {
-    console.log(req.params.boardId);
     const result = await boardService.getBoardByIdService(req.params.boardId);
     return sendResponse(res, 200, true, 'Board retrieved successfully', result);
   } catch (error) {
