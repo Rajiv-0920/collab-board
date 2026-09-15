@@ -3,8 +3,7 @@ import { useGetMeQuery } from '../services/userApi';
 import { useLogoutMutation } from '../services/authApi';
 import { setCredentials } from '../store/authSlice';
 import { baseApi } from '../services/baseApi';
-import { useNavigate } from 'react-router';
-import { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router';
 
 const HomePage = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();
@@ -33,7 +32,9 @@ const HomePage = () => {
   return (
     <div>
       <h1>Welcome, {me.name}</h1>
-      <button onClick={handleLogout}>Logout</button>
+      <button onClick={() => handleLogout()}>Logout</button>
+      <br />
+      <Link to="/dashboard">Go to Dashboard</Link>
     </div>
   );
 };
