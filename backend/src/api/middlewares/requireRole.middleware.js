@@ -1,10 +1,14 @@
 import { getUserRole } from '../services/boardMember.service.js';
+import mongoose from 'mongoose';
 
 const ROLE_RANK = { viewer: 1, editor: 2, owner: 3 };
 
 export const requireRole = (minimumRole) => {
   return async function (req, res, next) {
-    const role = await getUserRole(req.user.id, req.params.boardId);
+    const userId = req.user._id || req.user.id;
+    const boardId = new mongoose.Types.ObjectId(req.params.boardId);
+
+    const role = await getUserRole(userId, boardId);
 
     if (!role)
       return res.status(403).json({ error: 'Not a member of this board' });

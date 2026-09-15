@@ -35,3 +35,8 @@ export const createBoardService = async (req, { title, description }) => {
     session.endSession();
   }
 };
+
+export const getBoardByIdService = async (boardId) => {
+  const board = await Board.findById(boardId);
+  return board;
+};

@@ -24,11 +24,6 @@ const HomePage = () => {
 
   if (isMeLoading) return <p>Loading...</p>;
 
-  if (!me) {
-    navigate('/auth/login');
-    return null;
-  }
-
   return (
     <div>
       <h1>Welcome, {me.name}</h1>

@@ -7,16 +7,25 @@ export const boardsApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       providesTags: ['Boards'],
     }),
+    getBoardById: builder.query({
+      query: (boardId) => `/boards/${boardId}`,
+      transformResponse: (response) => response.data,
+      providesTags: ['Boards'],
+    }),
     createBoard: builder.mutation({
       query: (boardData) => ({
         url: '/boards',
         method: 'POST',
         body: boardData,
-        transformResponse: (response) => response.data,
       }),
+      transformResponse: (response) => response.data,
       invalidatesTags: ['Boards'],
     }),
   }),
 });
 
-export const { useGetBoardsQuery, useCreateBoardMutation } = boardsApi;
+export const {
+  useGetBoardsQuery,
+  useGetBoardByIdQuery,
+  useCreateBoardMutation,
+} = boardsApi;
