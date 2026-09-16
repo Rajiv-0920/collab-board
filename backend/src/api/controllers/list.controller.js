@@ -21,3 +21,24 @@ export const createList = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateList = async (req, res, next) => {
+  try {
+    const result = await listService.updateListService(
+      req.params.listId,
+      req.body,
+    );
+    return sendResponse(res, 200, true, 'List updated successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteList = async (req, res, next) => {
+  try {
+    await listService.deleteListService(req.params.listId);
+    return sendResponse(res, 200, true, 'List deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};

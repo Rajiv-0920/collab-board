@@ -18,6 +18,15 @@ router.post(
   controller.createList,
 );
 
+router.patch('/:listId', protect, requireRole('editor'), controller.updateList);
+
+router.delete(
+  '/:listId',
+  protect,
+  requireRole('editor'),
+  controller.deleteList,
+);
+
 router.use('/:listId/cards', cardRouter);
 
 export default router;
