@@ -1,23 +1,20 @@
 import express from 'express';
 import { protect } from '../middlewares/auth.middleware.js';
+import * as controller from '../controllers/card.controller.js';
 import { requireRole } from '../middlewares/requireRole.middleware.js';
-import * as controller from '../controllers/list.controller.js';
-import { createListSchema } from '../schemas/list.schemas.js';
 import { validate } from '../middlewares/validate.middleware.js';
-import cardRouter from './card.route.js';
+import { createCardSchema } from '../schemas/card.schemas.js';
 
 const router = express.Router({ mergeParams: true });
 
-router.get('/', protect, requireRole('viewer'), controller.getLists);
+router.get('/', protect, requireRole('viewer'), controller.getCards);
 
 router.post(
   '/',
   protect,
   requireRole('editor'),
-  validate(createListSchema),
-  controller.createList,
+  validate(createCardSchema),
+  controller.createCard,
 );
-
-router.use('/:listId/cards', cardRouter);
 
 export default router;
