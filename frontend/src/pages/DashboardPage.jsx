@@ -3,6 +3,7 @@ import {
   useCreateBoardMutation,
   useGetBoardsQuery,
 } from '../services/boardsApi';
+import { Link } from 'react-router';
 
 const DashboardPage = () => {
   const [boardBody, setBoardBody] = useState({ title: '', description: '' });
@@ -48,7 +49,9 @@ const DashboardPage = () => {
         {boards && boards.length > 0 ? (
           <ul>
             {boards.map((board) => (
-              <li key={board._id}>{board.title}</li>
+              <li key={board._id}>
+                <Link to={`/boards/${board._id}`}>{board.title}</Link>
+              </li>
             ))}
           </ul>
         ) : null}

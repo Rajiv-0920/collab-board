@@ -6,6 +6,7 @@ import ErrorPage from './pages/ErrorPage';
 import RootLayout from './layout/RootLayout';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
+import BoardPage from './pages/BoardPage';
 
 const router = createBrowserRouter([
   {
@@ -20,6 +21,10 @@ const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <DashboardPage />,
+      },
+      {
+        path: 'boards/:boardId',
+        element: <BoardPage />,
       },
     ],
   },
