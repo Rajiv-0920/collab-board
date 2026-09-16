@@ -19,7 +19,7 @@ export const setCookie = (res, token, rememberMe) => {
   });
 };
 
-export const generateHashedPasswod = async (password) => {
+export const generateHashedPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
   return hashedPassword;

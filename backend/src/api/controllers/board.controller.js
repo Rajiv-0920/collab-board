@@ -27,3 +27,24 @@ export const getBoardById = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateBoard = async (req, res, next) => {
+  try {
+    const result = await boardService.updateBoardService(
+      req.params.boardId,
+      req.body,
+    );
+    return sendResponse(res, 200, true, 'Board updated successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteBoard = async (req, res, next) => {
+  try {
+    await boardService.deleteBoardService(req.params.boardId);
+    return sendResponse(res, 200, true, 'Board deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};

@@ -1,6 +1,6 @@
 import User from '../models/user.model.js';
 import {
-  generateHashedPasswod,
+  generateHashedPassword,
   generateToken,
   setCookie,
 } from '../library/token.js';
@@ -16,7 +16,7 @@ export const registerUser = async ({ name, email, password }) => {
   }
 
   // 2. Hash password
-  const hashedPassword = await generateHashedPasswod(password);
+  const hashedPassword = await generateHashedPassword(password);
 
   // 3. Save to database
   const user = await User.create({
@@ -52,6 +52,7 @@ export const loginUser = async (res, { email, password, rememberMe }) => {
   if (!isPasswordMatch) {
     const error = new Error('Please enter valid credentials.');
     error.statusCode = 401;
+    throw error;
   }
 
   const token = generateToken(user);

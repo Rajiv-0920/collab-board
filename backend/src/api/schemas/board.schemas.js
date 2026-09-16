@@ -7,6 +7,13 @@ export const createBoardSchema = z.object({
   }),
 });
 
+export const updateBoardSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'Board title is required').max(100).optional(),
+    description: z.string().max(1000).optional(),
+  }),
+});
+
 export const boardMembersSchema = z.object({
   body: z.object({
     role: z.enum(['owner', 'editor', 'viewer']),
