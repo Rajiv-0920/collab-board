@@ -17,4 +17,13 @@ router.post(
   controller.createCard,
 );
 
+router.patch('/:cardId', protect, requireRole('editor'), controller.updateCard);
+
+router.delete(
+  '/:cardId',
+  protect,
+  requireRole('editor'),
+  controller.deleteCard,
+);
+
 export default router;

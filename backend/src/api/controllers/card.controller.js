@@ -21,3 +21,24 @@ export const createCard = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updateCard = async (req, res, next) => {
+  try {
+    const result = await cardService.updateCardService(
+      req.params.cardId,
+      req.body,
+    );
+    return sendResponse(res, 200, true, 'Card updated successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteCard = async (req, res, next) => {
+  try {
+    await cardService.deleteCardService(req.params.cardId);
+    sendResponse(res, 200, true, 'Card deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};
