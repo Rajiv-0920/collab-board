@@ -21,6 +21,23 @@ export const boardsApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       invalidatesTags: ['Boards'],
     }),
+    updateBoard: builder.mutation({
+      query: ({ id, body }) => ({
+        url: `/boards/${id}`,
+        method: 'PATCH',
+        body,
+      }),
+      transformResponse: (response) => response.data,
+      invalidatesTags: ['Boards'],
+    }),
+    deleteBoard: builder.mutation({
+      query: (boardId) => ({
+        url: `/boards/${boardId}`,
+        method: 'DELETE',
+      }),
+      transformResponse: (response) => response.data,
+      invalidatesTags: ['Boards'],
+    }),
   }),
 });
 
@@ -28,4 +45,6 @@ export const {
   useGetBoardsQuery,
   useGetBoardByIdQuery,
   useCreateBoardMutation,
+  useUpdateBoardMutation,
+  useDeleteBoardMutation,
 } = boardsApi;
