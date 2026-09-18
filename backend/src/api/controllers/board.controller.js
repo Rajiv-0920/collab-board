@@ -28,6 +28,24 @@ export const getBoardById = async (req, res, next) => {
   }
 };
 
+export const getBoardDetails = async (req, res, next) => {
+  try {
+    const result = await boardService.getBoardDetailsService(
+      req.params.boardId,
+      req.user._id,
+    );
+    return sendResponse(
+      res,
+      200,
+      true,
+      'Board details retrieved successfully',
+      result,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateBoard = async (req, res, next) => {
   try {
     const result = await boardService.updateBoardService(

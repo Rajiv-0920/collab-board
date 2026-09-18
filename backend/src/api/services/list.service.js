@@ -2,7 +2,9 @@ import List from '../models/list.model.js';
 import Card from '../models/card.model.js';
 
 export const getListsService = async (boardId) => {
-  const lists = await List.find({ boardId }).sort({ order: 1 });
+  const lists = await List.find({ boardId })
+    .sort({ order: 1 })
+    .populate('boardId');
   return lists;
 };
 

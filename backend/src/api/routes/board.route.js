@@ -10,6 +10,7 @@ import {
   createBoard,
   getBoard,
   getBoardById,
+  getBoardDetails,
   updateBoard,
   deleteBoard,
 } from '../controllers/board.controller.js';
@@ -21,6 +22,13 @@ const router = express.Router();
 router.get('/', protect, getBoard);
 
 router.get('/:boardId', protect, requireRole('viewer'), getBoardById);
+
+router.get(
+  '/:boardId/details',
+  protect,
+  requireRole('viewer'),
+  getBoardDetails,
+);
 
 router.post('/', protect, validate(createBoardSchema), createBoard);
 
