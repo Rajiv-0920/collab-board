@@ -12,6 +12,11 @@ export const boardsApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       providesTags: ['Boards'],
     }),
+    getBoardDetails: builder.query({
+      query: (boardId) => `/boards/${boardId}/details`,
+      transformResponse: (response) => response.data,
+      providesTags: ['Boards'],
+    }),
     createBoard: builder.mutation({
       query: (boardData) => ({
         url: '/boards',
@@ -44,6 +49,7 @@ export const boardsApi = baseApi.injectEndpoints({
 export const {
   useGetBoardsQuery,
   useGetBoardByIdQuery,
+  useGetBoardDetailsQuery,
   useCreateBoardMutation,
   useUpdateBoardMutation,
   useDeleteBoardMutation,
