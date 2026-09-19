@@ -16,10 +16,10 @@ export const listApi = baseApi.injectEndpoints({
       invalidatesTags: ['List', 'Boards'],
     }),
     updateList: builder.mutation({
-      query: ({ boardId, listId, title }) => ({
+      query: ({ boardId, listId, title, prevOrder, nextOrder }) => ({
         url: `/boards/${boardId}/lists/${listId}`,
         method: 'PATCH',
-        body: { title },
+        body: { title, prevOrder, nextOrder },
       }),
       invalidatesTags: ['List', 'Boards'],
     }),
