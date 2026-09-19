@@ -7,18 +7,14 @@ import {
 } from '../../services/cardApi';
 import BoardCard from './BoardCard';
 import CardForm from './CardForm';
+import { useDeleteListMutation } from '../../services/listApi';
 
-const BoardList = ({
-  list,
-  handleUpdateList,
-  deleteList,
-  isLoadingDeleteList,
-  listIndex,
-  updateList,
-}) => {
+const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const { boardId } = useParams();
   const { data: board, isLoading: isBoardLoading } =
     useGetBoardDetailsQuery(boardId);
+  const [deleteList, { isLoading: isLoadingDeleteList }] =
+    useDeleteListMutation();
   const isAbleToUpdate = board?.myRole !== 'viewer';
   const [cardBody, setCardBody] = useState({ id: null, title: '' });
   const [createCard, { isLoading: isLoadingCreateCard }] =

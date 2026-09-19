@@ -2,7 +2,6 @@ import { useParams } from 'react-router';
 import { useGetBoardDetailsQuery } from '../services/boardsApi';
 import {
   useCreateListMutation,
-  useDeleteListMutation,
   useUpdateListMutation,
 } from '../services/listApi';
 import { useState } from 'react';
@@ -15,20 +14,25 @@ const BoardPage = () => {
   const { boardId } = useParams();
   const currentUser = useSelector(selectCurrentUser);
   const [listBody, setListBody] = useState({ id: null, title: '' });
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
 
-  const { data: board, isLoading: isBoardLoading } =
-    useGetBoardDetailsQuery(boardId);
+  const isUpdating = Boolean(listBody.id);
+
+  const {
+    data: board,
+    isLoading: isBoardLoading,
+    error: boardError,
+  } = useGetBoardDetailsQuery(boardId);
   const [createList, { isLoading: isLoadingCreateList }] =
     useCreateListMutation();
-  const [deleteList, { isLoading: isLoadingDeleteList }] =
-    useDeleteListMutation();
   const [updateList] = useUpdateListMutation();
 
   const isAbleToUpdate = board?.myRole !== 'viewer';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setErrorMsg(null);
+
     try {
       if (isUpdating) {
         await updateList({
@@ -36,18 +40,20 @@ const BoardPage = () => {
           listId: listBody.id,
           title: listBody.title,
         }).unwrap();
-        setIsUpdating(false);
       } else {
         await createList({ boardId, title: listBody.title }).unwrap();
       }
+      // Reset form on success
       setListBody({ id: null, title: '' });
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(
+        err?.data?.message || 'Something went wrong. Please try again.',
+      );
     }
   };
 
   const handleUpdateList = (list) => {
-    setIsUpdating(true);
     setListBody({
       id: list._id,
       title: list.title,
@@ -56,11 +62,16 @@ const BoardPage = () => {
     });
   };
 
-  if (isBoardLoading) return <div>Loading...</div>;
+  if (isBoardLoading)
+    return <div className="loading-spinner">Loading board...</div>;
+  if (boardError)
+    return <div className="error-banner">Failed to load board details.</div>;
 
   return (
-    <div>
-      <h1>Welcome, {currentUser.name}</h1>
+    <div className="board-page">
+      <h1>Welcome, {currentUser?.name || 'User'}</h1>
+
+      {errorMsg && <div className="alert-error">{errorMsg}</div>}
 
       {isAbleToUpdate && (
         <ListForm
@@ -69,25 +80,34 @@ const BoardPage = () => {
           handleSubmit={handleSubmit}
           isUpdating={isUpdating}
           isLoadingCreateList={isLoadingCreateList}
+          onCancel={
+            isUpdating ? () => setListBody({ id: null, title: '' }) : undefined
+          }
         />
       )}
 
-      <h2>{board.title}</h2>
-      <p>{board.description}</p>
+      <div className="board-header">
+        <h2>{board?.title}</h2>
+        <p>{board?.description}</p>
+      </div>
 
-      <div>
-        {board.lists &&
+      <div className="board-lists-container">
+        {board?.lists?.length > 0 ? (
           board.lists.map((list, index) => (
             <BoardList
               key={list._id}
               list={list}
+              boardId={boardId}
               handleUpdateList={handleUpdateList}
-              deleteList={deleteList}
-              isLoadingDeleteList={isLoadingDeleteList}
               listIndex={index}
               updateList={updateList}
             />
-          ))}
+          ))
+        ) : (
+          <p className="no-lists-text">
+            No lists found. Create one to get started!
+          </p>
+        )}
       </div>
     </div>
   );
