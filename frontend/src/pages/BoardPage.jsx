@@ -97,7 +97,6 @@ const BoardPage = () => {
             <BoardList
               key={list._id}
               list={list}
-              boardId={boardId}
               handleUpdateList={handleUpdateList}
               listIndex={index}
               updateList={updateList}
