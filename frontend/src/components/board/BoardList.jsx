@@ -8,7 +8,7 @@ import {
 import BoardCard from './BoardCard';
 import CardForm from './CardForm';
 import { useDeleteListMutation } from '../../services/listApi';
-import { Draggable } from '@hello-pangea/dnd';
+import { Draggable, Droppable } from '@hello-pangea/dnd';
 
 const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const { boardId } = useParams();
@@ -16,7 +16,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     useGetBoardDetailsQuery(boardId);
   const [deleteList, { isLoading: isLoadingDeleteList }] =
     useDeleteListMutation();
-  const isAbleToUpdate = board?.myRole !== 'viewer';
+  const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
   const [cardBody, setCardBody] = useState({ id: null, title: '' });
   const [createCard, { isLoading: isLoadingCreateCard }] =
     useCreateCardMutation();
@@ -94,6 +94,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
           {...provided.dragHandleProps}
           style={{
             padding: '20px',
+            margin: '10px',
             backgroundColor: '#eeeeee',
             ...provided.draggableProps.style,
             // ...provided.dragHandleProps.style,
@@ -127,22 +128,33 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
                 isLoading={isLoadingCreateCard || isLoadingUpdateCard}
               />
             )}
-            {list.cards.length <= 0 ? (
-              <div style={{ color: 'gray' }}>No cards</div>
-            ) : (
-              list.cards.map((card, index) => (
-                <BoardCard
-                  key={card._id}
-                  card={card}
-                  setCardBody={setCardBody}
-                  setIsUpdate={setIsUpdate}
-                  updateCard={updateCard}
-                  listIndex={listIndex}
-                  cardIndex={index}
-                  list={list}
-                />
-              ))
-            )}
+            <Droppable droppableId={list._id} type="CARD">
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.droppableProps}
+                  style={{ minHeight: 40, ...provided.droppableProps.style }}
+                >
+                  {list.cards.length <= 0 ? (
+                    <div style={{ color: 'gray' }}>No cards</div>
+                  ) : (
+                    list.cards.map((card, index) => (
+                      <BoardCard
+                        key={card._id}
+                        card={card}
+                        setCardBody={setCardBody}
+                        setIsUpdate={setIsUpdate}
+                        updateCard={updateCard}
+                        listIndex={listIndex}
+                        cardIndex={index}
+                        list={list}
+                      />
+                    ))
+                  )}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
           </div>
         </div>
       )}

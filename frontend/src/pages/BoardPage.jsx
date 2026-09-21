@@ -11,6 +11,7 @@ import BoardList from '../components/board/BoardList';
 import ListForm from '../components/board/ListForm';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useEffect } from 'react';
+import { useUpdateCardMutation } from '../services/cardApi';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -28,14 +29,15 @@ const BoardPage = () => {
   const [createList, { isLoading: isLoadingCreateList }] =
     useCreateListMutation();
   const [updateList] = useUpdateListMutation();
+  const [updateCard] = useUpdateCardMutation();
 
   const [lists, setLists] = useState([]);
 
   useEffect(() => {
     setLists(board?.lists ?? []);
-  }, [board?.lists]);
+  }, [board?.lists, board?.cards]);
 
-  const isAbleToUpdate = board?.myRole !== 'viewer';
+  const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -100,6 +102,35 @@ const BoardPage = () => {
       } catch (err) {
         setLists(board?.lists ?? []);
         setErrorMsg(err?.data?.message || 'Failed to move list.');
+      }
+    }
+
+    if (type === 'CARD') {
+      if (source.droppableId !== destination.droppableId) return;
+
+      const listIdx = lists.findIndex((l) => l._id === source.droppableId);
+      const newLists = lists.map((l) => ({ ...l, cards: [...l.cards] }));
+      const cards = newLists[listIdx].cards;
+
+      const [moved] = cards.splice(source.index, 1);
+      cards.splice(destination.index, 0, moved);
+      setLists(newLists);
+
+      const prevCard = cards[destination.index - 1] ?? null;
+      const nextCard = cards[destination.index + 1] ?? null;
+
+      try {
+        await updateCard({
+          boardId,
+          listId: source.droppableId,
+          cardId: moved._id,
+          cardTitle: moved.title,
+          prevOrder: prevCard ? prevCard.order : null,
+          nextOrder: nextCard ? nextCard.order : null,
+        }).unwrap();
+      } catch (err) {
+        setLists(board?.lists ?? []);
+        setErrorMsg(err?.data?.message || 'Failed to move card.');
       }
     }
   };

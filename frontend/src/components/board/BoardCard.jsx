@@ -1,6 +1,7 @@
 import { useParams } from 'react-router';
 import { useGetBoardDetailsQuery } from '../../services/boardsApi';
 import { useDeleteCardMutation } from '../../services/cardApi';
+import { Draggable } from '@hello-pangea/dnd';
 
 const BoardCard = ({
   card,
@@ -17,7 +18,7 @@ const BoardCard = ({
   const [deleteCard, { isLoading: isLoadingDeleteCard }] =
     useDeleteCardMutation();
 
-  const isAbleToUpdate = board?.myRole !== 'viewer';
+  const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
 
   function moveCardUp({ cards }) {
     const card = cards[cardIndex];
@@ -58,37 +59,51 @@ const BoardCard = ({
     setCardBody({ id: card._id, title: card.title });
   };
   return (
-    <div>
-      {card.title}
-      &nbsp; &nbsp;
-      {isAbleToUpdate && (
-        <>
-          <button
-            onClick={() => moveCardUp({ cards: board.lists[listIndex].cards })}
-          >
-            👆🏼
-          </button>
-          <button
-            onClick={() =>
-              moveCardDown({ cards: board.lists[listIndex].cards })
-            }
-          >
-            👇🏼
-          </button>
+    <Draggable
+      draggableId={card._id}
+      index={cardIndex}
+      isDragDisabled={!isAbleToUpdate}
+    >
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          style={{ ...provided.draggableProps.style }}
+        >
+          {card.title}
           &nbsp; &nbsp;
-          <button onClick={handleUpdate}>Edit</button>
-          <button
-            onClick={() =>
-              deleteCard({ boardId, listId: card.listId, cardId: card._id })
-            }
-            disabled={isLoadingDeleteCard}
-          >
-            Delete
-          </button>
-        </>
+          {isAbleToUpdate && (
+            <>
+              <button
+                onClick={() =>
+                  moveCardUp({ cards: board.lists[listIndex].cards })
+                }
+              >
+                👆🏼
+              </button>
+              <button
+                onClick={() =>
+                  moveCardDown({ cards: board.lists[listIndex].cards })
+                }
+              >
+                👇🏼
+              </button>
+              &nbsp; &nbsp;
+              <button onClick={handleUpdate}>Edit</button>
+              <button
+                onClick={() =>
+                  deleteCard({ boardId, listId: card.listId, cardId: card._id })
+                }
+                disabled={isLoadingDeleteCard}
+              >
+                Delete
+              </button>
+            </>
+          )}
+        </div>
       )}
-      {/* Todo: Fix Edit button and Add Delete button as well */}
-    </div>
+    </Draggable>
   );
 };
 
