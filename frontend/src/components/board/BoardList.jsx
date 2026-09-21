@@ -8,6 +8,7 @@ import {
 import BoardCard from './BoardCard';
 import CardForm from './CardForm';
 import { useDeleteListMutation } from '../../services/listApi';
+import { Draggable } from '@hello-pangea/dnd';
 
 const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const { boardId } = useParams();
@@ -57,7 +58,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     updateList({
       boardId,
       listId: list._id,
-      listTitle: list.title,
+      title: list.title,
       prevOrder: beforePrevList ? beforePrevList.order : null,
       nextOrder: prevList.order,
     });
@@ -74,60 +75,78 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     updateList({
       boardId,
       listId: currentList._id,
-      listTitle: currentList.title,
+      title: currentList.title,
       prevOrder: nextList.order,
       nextOrder: afterNextList ? afterNextList.order : null,
     });
   }
 
   return (
-    <div>
-      <p style={{ fontSize: '1.2rem', fontWeight: 600 }}>
-        {list.title}&nbsp; &nbsp; &nbsp; &nbsp;
-        {isAbleToUpdate && (
-          <>
-            <button onClick={moveListUp}>^</button>
-            <button onClick={moveListDown}>v</button>
-            &nbsp; &nbsp;
-            <button onClick={() => handleUpdateList(list)}>Update</button>
-            <button
-              onClick={() => deleteList({ boardId, listId: list._id })}
-              disabled={isLoadingDeleteList}
-            >
-              Delete
-            </button>
-          </>
-        )}
-      </p>
+    <Draggable
+      draggableId={list._id}
+      index={listIndex}
+      isDragDisabled={!isAbleToUpdate}
+    >
+      {(provided, snapshot) => (
+        <div
+          ref={provided.innerRef}
+          {...provided.draggableProps}
+          {...provided.dragHandleProps}
+          style={{
+            padding: '20px',
+            backgroundColor: '#eeeeee',
+            ...provided.draggableProps.style,
+            // ...provided.dragHandleProps.style,
+          }}
+        >
+          <p style={{ fontSize: '1.2rem', fontWeight: 600 }}>
+            {list.title}&nbsp; &nbsp; &nbsp; &nbsp;
+            {isAbleToUpdate && (
+              <>
+                <button onClick={moveListUp}>^</button>
+                <button onClick={moveListDown}>v</button>
+                &nbsp; &nbsp;
+                <button onClick={() => handleUpdateList(list)}>Update</button>
+                <button
+                  onClick={() => deleteList({ boardId, listId: list._id })}
+                  disabled={isLoadingDeleteList}
+                >
+                  Delete
+                </button>
+              </>
+            )}
+          </p>
 
-      <div>
-        {isAbleToUpdate && (
-          <CardForm
-            handleSubmit={handleSubmit}
-            cardBody={cardBody}
-            setCardBody={setCardBody}
-            isUpdate={isUpdate}
-            isLoading={isLoadingCreateCard || isLoadingUpdateCard}
-          />
-        )}
-        {list.cards.length <= 0 ? (
-          <div style={{ color: 'gray' }}>No cards</div>
-        ) : (
-          list.cards.map((card, index) => (
-            <BoardCard
-              key={card._id}
-              card={card}
-              setCardBody={setCardBody}
-              setIsUpdate={setIsUpdate}
-              updateCard={updateCard}
-              listIndex={listIndex}
-              cardIndex={index}
-              list={list}
-            />
-          ))
-        )}
-      </div>
-    </div>
+          <div>
+            {isAbleToUpdate && (
+              <CardForm
+                handleSubmit={handleSubmit}
+                cardBody={cardBody}
+                setCardBody={setCardBody}
+                isUpdate={isUpdate}
+                isLoading={isLoadingCreateCard || isLoadingUpdateCard}
+              />
+            )}
+            {list.cards.length <= 0 ? (
+              <div style={{ color: 'gray' }}>No cards</div>
+            ) : (
+              list.cards.map((card, index) => (
+                <BoardCard
+                  key={card._id}
+                  card={card}
+                  setCardBody={setCardBody}
+                  setIsUpdate={setIsUpdate}
+                  updateCard={updateCard}
+                  listIndex={listIndex}
+                  cardIndex={index}
+                  list={list}
+                />
+              ))
+            )}
+          </div>
+        </div>
+      )}
+    </Draggable>
   );
 };
 

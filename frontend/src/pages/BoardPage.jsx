@@ -9,6 +9,8 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../store/authSlice';
 import BoardList from '../components/board/BoardList';
 import ListForm from '../components/board/ListForm';
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
+import { useEffect } from 'react';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -26,6 +28,12 @@ const BoardPage = () => {
   const [createList, { isLoading: isLoadingCreateList }] =
     useCreateListMutation();
   const [updateList] = useUpdateListMutation();
+
+  const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    setLists(board?.lists ?? []);
+  }, [board?.lists]);
 
   const isAbleToUpdate = board?.myRole !== 'viewer';
 
@@ -62,6 +70,40 @@ const BoardPage = () => {
     });
   };
 
+  const handleDragEnd = async (result) => {
+    const { source, destination, type } = result;
+
+    if (!isAbleToUpdate || !destination) return;
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    )
+      return;
+
+    if (type === 'LIST') {
+      const newLists = Array.from(lists);
+      const [moved] = newLists.splice(source.index, 1);
+      newLists.splice(destination.index, 0, moved);
+      setLists(newLists);
+
+      const prevList = newLists[destination.index - 1] ?? null;
+      const nextList = newLists[destination.index + 1] ?? null;
+
+      try {
+        await updateList({
+          boardId,
+          listId: moved._id,
+          title: moved.title,
+          prevOrder: prevList ? prevList.order : null,
+          nextOrder: nextList ? nextList.order : null,
+        }).unwrap();
+      } catch (err) {
+        setLists(board?.lists ?? []);
+        setErrorMsg(err?.data?.message || 'Failed to move list.');
+      }
+    }
+  };
+
   if (isBoardLoading)
     return <div className="loading-spinner">Loading board...</div>;
   if (boardError)
@@ -91,23 +133,44 @@ const BoardPage = () => {
         <p>{board?.description}</p>
       </div>
 
-      <div className="board-lists-container">
-        {board?.lists?.length > 0 ? (
-          board.lists.map((list, index) => (
-            <BoardList
-              key={list._id}
-              list={list}
-              handleUpdateList={handleUpdateList}
-              listIndex={index}
-              updateList={updateList}
-            />
-          ))
-        ) : (
-          <p className="no-lists-text">
-            No lists found. Create one to get started!
-          </p>
-        )}
-      </div>
+      <DragDropContext onDragEnd={handleDragEnd}>
+        <Droppable droppableId={boardId} direction="horizontal" type="LIST">
+          {(provided, snapshot) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              style={{
+                display: 'flex',
+                flexDirection: 'row',
+                alignItems: 'flex-start',
+                justifyContent: 'flex-start',
+                backgroundColor: snapshot.isDraggingOver
+                  ? '#FFE2E2'
+                  : '#FBEFEF',
+                padding: '20px',
+              }}
+              className="board-lists-container"
+            >
+              {lists?.length > 0 ? (
+                lists.map((list, index) => (
+                  <BoardList
+                    key={list._id}
+                    list={list}
+                    handleUpdateList={handleUpdateList}
+                    listIndex={index}
+                    updateList={updateList}
+                  />
+                ))
+              ) : (
+                <p className="no-lists-text">
+                  No lists found. Create one to get started!
+                </p>
+              )}
+              {provided.placeholder}
+            </div>
+          )}
+        </Droppable>
+      </DragDropContext>
     </div>
   );
 };
