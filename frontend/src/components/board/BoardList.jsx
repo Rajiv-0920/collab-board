@@ -1,6 +1,6 @@
 import { useParams } from 'react-router';
 import { useGetBoardDetailsQuery } from '../../services/boardsApi';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   useCreateCardMutation,
   useUpdateCardMutation,
@@ -9,11 +9,15 @@ import BoardCard from './BoardCard';
 import CardForm from './CardForm';
 import { useDeleteListMutation } from '../../services/listApi';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
+import { socket } from '../../services/socket';
 
 const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const { boardId } = useParams();
-  const { data: board, isLoading: isBoardLoading } =
-    useGetBoardDetailsQuery(boardId);
+  const {
+    data: board,
+    refetch,
+    isLoading: isBoardLoading,
+  } = useGetBoardDetailsQuery(boardId);
   const [deleteList, { isLoading: isLoadingDeleteList }] =
     useDeleteListMutation();
   const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
@@ -23,6 +27,15 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const [updateCard, { isLoading: isLoadingUpdateCard }] =
     useUpdateCardMutation();
   const [isUpdate, setIsUpdate] = useState(false);
+
+  useEffect(() => {
+    socket.on('card:created', () => {
+      refetch();
+    });
+    return () => {
+      socket.off('card:created');
+    };
+  }, [refetch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

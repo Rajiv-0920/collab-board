@@ -4,8 +4,7 @@ import cors from 'cors';
 
 import apiRoutes from './api/routes/index.js';
 import { globalErrorHandler } from './api/middlewares/errorHandler.middleware.js';
-
-const app = express();
+import { app } from './config/socket.js';
 
 app.use(express.json());
 app.use(cookieParser());
