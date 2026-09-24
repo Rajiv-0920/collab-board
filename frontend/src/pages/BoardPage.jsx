@@ -28,7 +28,6 @@ const BoardPage = () => {
     data: board,
     isLoading: isBoardLoading,
     error: boardError,
-    refetch,
   } = useGetBoardDetailsQuery(boardId);
 
   const [createList, { isLoading: isLoadingCreateList }] =
@@ -41,9 +40,35 @@ const BoardPage = () => {
   useEffect(() => {
     socket.connect();
     socket.emit('joinBoard', boardId);
-    socket.on('card:deleted', () => refetch());
-    socket.on('card:updated', () => refetch());
-    socket.on('card:created', () => refetch());
+
+    socket.on('list:created', (newList) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          newList.cards = [];
+          draft.lists.push(newList);
+        }),
+      );
+    });
+
+    socket.on('list:updated', (updatedList) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          const index = draft.lists.findIndex((l) => l._id === updatedList._id);
+          if (index !== -1) {
+            draft.lists[index] = { ...draft.lists[index], ...updatedList };
+            draft.lists.sort((a, b) => a.order - b.order);
+          }
+        }),
+      );
+    });
+
+    socket.on('list:deleted', (listId) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          draft.lists = draft.lists.filter((l) => l._id !== listId);
+        }),
+      );
+    });
 
     socket.on('card:deleted', (cardId) => {
       dispatch(
@@ -76,12 +101,16 @@ const BoardPage = () => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
           const list = draft.lists.find((l) => l._id === newCard.listId);
-          if (list) list.cards.push(newCard);
+          if (!list.cards) list.cards = [];
+          list.cards.push(newCard);
         }),
       );
     });
 
     return () => {
+      socket.off('list:created');
+      socket.off('list:updated');
+      socket.off('list:deleted');
       socket.off('card:deleted');
       socket.off('card:created');
       socket.off('card:updated');
