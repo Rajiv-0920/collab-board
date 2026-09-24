@@ -13,8 +13,11 @@ const BoardCard = ({
   list,
 }) => {
   const { boardId } = useParams();
-  const { data: board, isLoading: isBoardLoading } =
-    useGetBoardDetailsQuery(boardId);
+  const {
+    data: board,
+    refetch,
+    isLoading: isBoardLoading,
+  } = useGetBoardDetailsQuery(boardId);
   const [deleteCard, { isLoading: isLoadingDeleteCard }] =
     useDeleteCardMutation();
 
