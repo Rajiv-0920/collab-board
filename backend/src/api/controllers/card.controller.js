@@ -27,10 +27,12 @@ export const createCard = async (req, res, next) => {
 
 export const updateCard = async (req, res, next) => {
   try {
+    const { boardId } = req.params;
     const result = await cardService.updateCardService(
       req.params.cardId,
       req.body,
     );
+    io.to(boardId).emit('card:updated', result);
     return sendResponse(res, 200, true, 'Card updated successfully', result);
   } catch (error) {
     next(error);

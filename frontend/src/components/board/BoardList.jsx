@@ -32,8 +32,12 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     socket.on('card:created', () => {
       refetch();
     });
+    socket.on('card:updated', () => {
+      refetch();
+    });
     return () => {
       socket.off('card:created');
+      socket.off('card:updated');
     };
   }, [refetch]);
 
