@@ -41,6 +41,9 @@ const BoardPage = () => {
   useEffect(() => {
     socket.connect();
     socket.emit('joinBoard', boardId);
+    socket.on('card:deleted', () => refetch());
+    socket.on('card:updated', () => refetch());
+    socket.on('card:created', () => refetch());
 
     socket.on('card:deleted', (cardId) => {
       dispatch(
