@@ -1,5 +1,6 @@
 import * as cardService from '../services/card.service.js';
 import { sendResponse } from '../library/utils.js';
+import { io } from '../../config/socket.js';
 
 export const getCards = async (req, res, next) => {
   try {
@@ -12,10 +13,12 @@ export const getCards = async (req, res, next) => {
 
 export const createCard = async (req, res, next) => {
   try {
+    const { boardId } = req.params;
     const result = await cardService.createCardService(
       req.body.title,
       req.params.listId,
     );
+    io.to(boardId).emit('card:created', result);
     return sendResponse(res, 201, true, 'Card created successfully', result);
   } catch (error) {
     next(error);

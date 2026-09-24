@@ -12,6 +12,7 @@ import ListForm from '../components/board/ListForm';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useEffect } from 'react';
 import { useUpdateCardMutation } from '../services/cardApi';
+import { socket } from '../services/socket';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -20,18 +21,27 @@ const BoardPage = () => {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const isUpdating = Boolean(listBody.id);
-
   const {
     data: board,
     isLoading: isBoardLoading,
     error: boardError,
   } = useGetBoardDetailsQuery(boardId);
+
   const [createList, { isLoading: isLoadingCreateList }] =
     useCreateListMutation();
   const [updateList] = useUpdateListMutation();
   const [updateCard] = useUpdateCardMutation();
 
   const [lists, setLists] = useState([]);
+
+  useEffect(() => {
+    socket.connect();
+    socket.emit('joinBoard', boardId);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [boardId]);
 
   useEffect(() => {
     setLists(board?.lists ?? []);
@@ -106,27 +116,32 @@ const BoardPage = () => {
     }
 
     if (type === 'CARD') {
-      if (source.droppableId !== destination.droppableId) return;
+      const srcIdx = lists.findIndex((l) => l._id === source.droppableId);
+      const dstIdx = lists.findIndex((l) => l._id === destination.droppableId);
 
-      const listIdx = lists.findIndex((l) => l._id === source.droppableId);
+      // copy lists and cards so RTK state is never mutated
       const newLists = lists.map((l) => ({ ...l, cards: [...l.cards] }));
-      const cards = newLists[listIdx].cards;
 
-      const [moved] = cards.splice(source.index, 1);
-      cards.splice(destination.index, 0, moved);
+      const [moved] = newLists[srcIdx].cards.splice(source.index, 1);
+      newLists[dstIdx].cards.splice(destination.index, 0, moved);
       setLists(newLists);
 
-      const prevCard = cards[destination.index - 1] ?? null;
-      const nextCard = cards[destination.index + 1] ?? null;
+      // neighbors in the DESTINATION list, after the move
+      const destCards = newLists[dstIdx].cards;
+      const prevCard = destCards[destination.index - 1] ?? null;
+      const nextCard = destCards[destination.index + 1] ?? null;
+
+      const isCrossList = source.droppableId !== destination.droppableId;
 
       try {
         await updateCard({
           boardId,
-          listId: source.droppableId,
+          listId: source.droppableId, // old list (URL)
           cardId: moved._id,
           cardTitle: moved.title,
           prevOrder: prevCard ? prevCard.order : null,
           nextOrder: nextCard ? nextCard.order : null,
+          newListId: isCrossList ? destination.droppableId : undefined,
         }).unwrap();
       } catch (err) {
         setLists(board?.lists ?? []);

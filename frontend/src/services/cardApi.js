@@ -19,10 +19,16 @@ export const cardApi = baseApi.injectEndpoints({
         cardTitle,
         prevOrder,
         nextOrder,
+        newListId,
       }) => ({
         url: `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
         method: 'PATCH',
-        body: { title: cardTitle, prevOrder, nextOrder },
+        body: {
+          title: cardTitle,
+          prevOrder,
+          nextOrder,
+          ...(newListId && { listId: newListId }),
+        },
       }),
       transformResponse: (response) => response.data,
       invalidatesTags: ['Boards', 'List', 'Card'],

@@ -7,6 +7,8 @@ import RootLayout from './layout/RootLayout';
 import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import BoardPage from './pages/BoardPage';
+import { useEffect } from 'react';
+import { io } from 'socket.io-client';
 
 const router = createBrowserRouter([
   {

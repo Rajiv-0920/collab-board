@@ -1,9 +1,11 @@
 import express from 'express';
 import 'dotenv/config';
 
-import app from './app.js';
+import { server } from './config/socket.js';
 import connectDB from './config/database.js';
 import { setServers } from 'node:dns/promises';
+
+import './app.js';
 
 setServers(['1.1.1.1', '8.8.8.8']);
 
@@ -13,7 +15,7 @@ const startServer = async () => {
   try {
     await connectDB();
 
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       console.log(`Listening on :${PORT}`);
     });
