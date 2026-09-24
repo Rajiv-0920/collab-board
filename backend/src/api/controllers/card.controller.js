@@ -43,7 +43,7 @@ export const deleteCard = async (req, res, next) => {
   try {
     const { boardId } = req.params;
     await cardService.deleteCardService(req.params.cardId);
-    io.to(boardId).emit('card:deleted');
+    io.to(boardId).emit('card:deleted', req.params.cardId);
     sendResponse(res, 200, true, 'Card deleted successfully');
   } catch (error) {
     next(error);

@@ -13,9 +13,12 @@ import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useEffect } from 'react';
 import { useUpdateCardMutation } from '../services/cardApi';
 import { socket } from '../services/socket';
+import { useDispatch } from 'react-redux';
+import { boardsApi } from '../services/boardsApi';
 
 const BoardPage = () => {
   const { boardId } = useParams();
+  const dispatch = useDispatch();
   const currentUser = useSelector(selectCurrentUser);
   const [listBody, setListBody] = useState({ id: null, title: '' });
   const [errorMsg, setErrorMsg] = useState(null);
@@ -38,9 +41,42 @@ const BoardPage = () => {
   useEffect(() => {
     socket.connect();
     socket.emit('joinBoard', boardId);
-    socket.on('card:deleted', () => refetch());
-    socket.on('card:updated', () => refetch());
-    socket.on('card:created', () => refetch());
+
+    socket.on('card:deleted', (cardId) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          for (const list of draft.lists) {
+            list.cards = list.cards.filter((c) => c._id !== cardId);
+          }
+        }),
+      );
+    });
+
+    socket.on('card:updated', (updatedCard) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          for (const list of draft.lists) {
+            list.cards = list.cards.filter((c) => c._id !== updatedCard._id);
+          }
+          const targetList = draft.lists.find(
+            (l) => l._id === updatedCard.listId,
+          );
+          if (targetList) {
+            targetList.cards.push(updatedCard);
+            targetList.cards.sort((a, b) => a.order - b.order);
+          }
+        }),
+      );
+    });
+
+    socket.on('card:created', (newCard) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          const list = draft.lists.find((l) => l._id === newCard.listId);
+          if (list) list.cards.push(newCard);
+        }),
+      );
+    });
 
     return () => {
       socket.off('card:deleted');
