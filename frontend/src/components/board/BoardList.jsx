@@ -1,6 +1,6 @@
 import { useParams } from 'react-router';
 import { useGetBoardDetailsQuery } from '../../services/boardsApi';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   useCreateCardMutation,
   useUpdateCardMutation,
@@ -9,7 +9,6 @@ import BoardCard from './BoardCard';
 import CardForm from './CardForm';
 import { useDeleteListMutation } from '../../services/listApi';
 import { Draggable, Droppable } from '@hello-pangea/dnd';
-import { socket } from '../../services/socket';
 
 const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const { boardId } = useParams();
@@ -27,19 +26,6 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
   const [updateCard, { isLoading: isLoadingUpdateCard }] =
     useUpdateCardMutation();
   const [isUpdate, setIsUpdate] = useState(false);
-
-  useEffect(() => {
-    socket.on('card:created', () => {
-      refetch();
-    });
-    socket.on('card:updated', () => {
-      refetch();
-    });
-    return () => {
-      socket.off('card:created');
-      socket.off('card:updated');
-    };
-  }, [refetch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

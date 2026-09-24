@@ -25,6 +25,7 @@ const BoardPage = () => {
     data: board,
     isLoading: isBoardLoading,
     error: boardError,
+    refetch,
   } = useGetBoardDetailsQuery(boardId);
 
   const [createList, { isLoading: isLoadingCreateList }] =
@@ -37,8 +38,14 @@ const BoardPage = () => {
   useEffect(() => {
     socket.connect();
     socket.emit('joinBoard', boardId);
+    socket.on('card:deleted', () => refetch());
+    socket.on('card:updated', () => refetch());
+    socket.on('card:created', () => refetch());
 
     return () => {
+      socket.off('card:deleted');
+      socket.off('card:created');
+      socket.off('card:updated');
       socket.disconnect();
     };
   }, [boardId]);
