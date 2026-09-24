@@ -138,10 +138,10 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
                   {...provided.droppableProps}
                   style={{ minHeight: 40, ...provided.droppableProps.style }}
                 >
-                  {list.cards.length <= 0 ? (
+                  {list?.cards?.length <= 0 ? (
                     <div style={{ color: 'gray' }}>No cards</div>
                   ) : (
-                    list.cards.map((card, index) => (
+                    list?.cards?.map((card, index) => (
                       <BoardCard
                         key={card._id}
                         card={card}
