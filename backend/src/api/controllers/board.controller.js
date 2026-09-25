@@ -66,3 +66,19 @@ export const deleteBoard = async (req, res, next) => {
     next(error);
   }
 };
+
+export const inviteMemberToBoard = async (req, res, next) => {
+  try {
+    const { boardId } = req.params;
+    const { email, role } = req.body;
+    const result = await boardService.inviteMemberToBoardService(
+      req,
+      boardId,
+      email,
+      role,
+    );
+    return sendResponse(res, 200, true, 'Member invited successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};

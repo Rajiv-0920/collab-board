@@ -3,6 +3,7 @@ import Board from '../models/board.model.js';
 import BoardMember from '../models/boardMember.model.js';
 import List from '../models/list.model.js';
 import Card from '../models/card.model.js';
+import User from '../models/user.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
@@ -114,4 +115,26 @@ export const deleteBoardService = async (boardId) => {
   } finally {
     session.endSession();
   }
+};
+
+export const inviteMemberToBoardService = async (req, boardId, email, role) => {
+  const board = await Board.findById(boardId);
+  const user = await User.findOne({ email });
+  if (!board) {
+    const error = new Error('Board not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (req.user._id.toString() !== board.ownerId.toString()) {
+    const error = new Error('Only the owner can invite members');
+    error.statusCode = 403;
+    throw error;
+  }
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  await BoardMember.create([{ boardId, userId: user._id, role }]);
+  return board;
 };

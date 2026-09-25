@@ -5,6 +5,7 @@ import { validate } from '../middlewares/validate.middleware.js';
 import {
   createBoardSchema,
   updateBoardSchema,
+  inviteMemberToBoardSchema,
 } from '../schemas/board.schemas.js';
 import {
   createBoard,
@@ -13,6 +14,7 @@ import {
   getBoardDetails,
   updateBoard,
   deleteBoard,
+  inviteMemberToBoard,
 } from '../controllers/board.controller.js';
 import { requireRole } from '../middlewares/requireRole.middleware.js';
 import listRoutes from './list.route.js';
@@ -31,6 +33,13 @@ router.get(
 );
 
 router.post('/', protect, validate(createBoardSchema), createBoard);
+
+router.post(
+  '/:boardId/invite',
+  protect,
+  validate(inviteMemberToBoardSchema),
+  inviteMemberToBoard,
+);
 
 router.patch(
   '/:boardId',
