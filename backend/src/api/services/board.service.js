@@ -26,7 +26,6 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
 
   // 2. Determine the current user's role for this board
   const isOwner = board.ownerId.toString() === currentUserId.toString();
-
   let myRole = 'viewer'; // Default fallback
   if (isOwner) {
     myRole = 'owner';
@@ -125,16 +124,42 @@ export const inviteMemberToBoardService = async (req, boardId, email, role) => {
     error.statusCode = 404;
     throw error;
   }
-  if (req.user._id.toString() !== board.ownerId.toString()) {
-    const error = new Error('Only the owner can invite members');
-    error.statusCode = 403;
-    throw error;
-  }
   if (!user) {
     const error = new Error('User not found');
     error.statusCode = 404;
     throw error;
   }
   await BoardMember.create([{ boardId, userId: user._id, role }]);
-  return board;
+  await Board.findByIdAndUpdate(boardId, {
+    $push: { members: { user, role } },
+  });
+};
+
+export const updateBoardMemberService = async (boardId, userId, role) => {
+  const boardMember = await BoardMember.findOneAndUpdate(
+    { boardId, userId },
+    { role },
+    { returnDocument: 'after' },
+  );
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  await Board.findOneAndUpdate(
+    { _id: boardId, 'members.user': userId },
+    { $set: { 'members.$.role': role } },
+    { returnDocument: 'after' },
+  );
+  return boardMember;
+};
+
+export const deleteBoardMemberService = async (boardId, userId) => {
+  await BoardMember.findOneAndDelete({ boardId, userId });
+  await Board.findOneAndUpdate(
+    { _id: boardId, 'members.user': userId },
+    { $pull: { members: { user: userId } } },
+    { returnDocument: 'after' },
+  );
 };

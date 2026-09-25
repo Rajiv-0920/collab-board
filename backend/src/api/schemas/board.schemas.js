@@ -24,6 +24,12 @@ export const boardMembersSchema = z.object({
 export const inviteMemberToBoardSchema = z.object({
   body: z.object({
     email: z.string().email('Invalid email'),
-    role: z.enum(['owner', 'editor', 'viewer']),
+    role: z.enum(['editor', 'viewer']),
+  }),
+});
+
+export const updateBoardMemberSchema = z.object({
+  body: z.object({
+    role: z.enum(['editor', 'viewer']),
   }),
 });
