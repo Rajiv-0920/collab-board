@@ -41,6 +41,15 @@ const BoardPage = () => {
     socket.connect();
     socket.emit('joinBoard', boardId);
 
+    socket.on('board:updated', (updatedBoard) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          draft.title = updatedBoard.title;
+          draft.description = updatedBoard.description;
+        }),
+      );
+    });
+
     socket.on('list:created', (newList) => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
@@ -108,6 +117,7 @@ const BoardPage = () => {
     });
 
     return () => {
+      socket.off('board:updated');
       socket.off('list:created');
       socket.off('list:updated');
       socket.off('list:deleted');

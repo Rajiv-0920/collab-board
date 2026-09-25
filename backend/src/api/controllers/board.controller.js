@@ -1,5 +1,6 @@
 import * as boardService from '../services/board.service.js';
 import { sendResponse } from '../library/utils.js';
+import { io } from '../../config/socket.js';
 
 export const getBoard = async (req, res, next) => {
   try {
@@ -48,10 +49,9 @@ export const getBoardDetails = async (req, res, next) => {
 
 export const updateBoard = async (req, res, next) => {
   try {
-    const result = await boardService.updateBoardService(
-      req.params.boardId,
-      req.body,
-    );
+    const { boardId } = req.params;
+    const result = await boardService.updateBoardService(boardId, req.body);
+    io.to(boardId).emit('board:updated', result);
     return sendResponse(res, 200, true, 'Board updated successfully', result);
   } catch (error) {
     next(error);

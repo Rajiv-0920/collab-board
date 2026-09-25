@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   useCreateBoardMutation,
   useGetBoardsQuery,
@@ -8,6 +8,9 @@ import {
 import { Link } from 'react-router';
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../store/authSlice';
+import { socket } from '../services/socket';
+import { useDispatch } from 'react-redux';
+import { boardsApi } from '../services/boardsApi';
 
 const DashboardPage = () => {
   const [boardBody, setBoardBody] = useState({
@@ -15,6 +18,7 @@ const DashboardPage = () => {
     title: '',
     description: '',
   });
+  const dispatch = useDispatch();
   const { data: boards, isLoading: isBoardsLoading } = useGetBoardsQuery();
   const [createBoard, { isLoading: isCreating, isError }] =
     useCreateBoardMutation();
@@ -23,6 +27,32 @@ const DashboardPage = () => {
   const [isUpdate, setIsUpdate] = useState(false);
   const isLoading = isCreating || isUpdating;
   const currentUser = useSelector(selectCurrentUser);
+
+  useEffect(() => {
+    if (!boards || boards.length === 0) return;
+
+    socket.connect();
+
+    boards.forEach((board) => {
+      socket.emit('joinBoard', board._id);
+    });
+
+    socket.on('board:updated', (updatedBoard) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoards', undefined, (draft) => {
+          const boardToUpdate = draft.find((b) => b._id === updatedBoard._id);
+          if (boardToUpdate) {
+            boardToUpdate.title = updatedBoard.title;
+            boardToUpdate.description = updatedBoard.description;
+          }
+        }),
+      );
+    });
+
+    return () => {
+      socket.off('board:updated');
+    };
+  }, [boards, dispatch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
