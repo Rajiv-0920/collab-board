@@ -15,6 +15,7 @@ import { useUpdateCardMutation } from '../services/cardApi';
 import { socket } from '../services/socket';
 import { useDispatch } from 'react-redux';
 import { boardsApi } from '../services/boardsApi';
+import MembersList from '../components/board/MembersList';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -245,6 +246,8 @@ const BoardPage = () => {
       <h1>Welcome, {currentUser?.name || 'User'}</h1>
 
       {errorMsg && <div className="alert-error">{errorMsg}</div>}
+
+      {board.myRole === 'owner' && <MembersList />}
 
       {isAbleToUpdate && (
         <ListForm
