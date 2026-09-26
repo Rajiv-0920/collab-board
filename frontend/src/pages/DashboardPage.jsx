@@ -19,7 +19,11 @@ const DashboardPage = () => {
     description: '',
   });
   const dispatch = useDispatch();
-  const { data: boards, isLoading: isBoardsLoading } = useGetBoardsQuery();
+  const {
+    data: boards,
+    refetch,
+    isLoading: isBoardsLoading,
+  } = useGetBoardsQuery();
   const [createBoard, { isLoading: isCreating, isError }] =
     useCreateBoardMutation();
   const [updateBoard, { isLoading: isUpdating }] = useUpdateBoardMutation();
@@ -29,13 +33,16 @@ const DashboardPage = () => {
   const currentUser = useSelector(selectCurrentUser);
 
   useEffect(() => {
-    if (!boards || boards.length === 0) return;
+    if (!socket.connected) {
+      socket.connect();
+      socket.emit('registerUser', currentUser._id);
+    }
 
-    socket.connect();
-
-    boards.forEach((board) => {
-      socket.emit('joinBoard', board._id);
-    });
+    if (boards && boards.length > 0) {
+      boards.forEach((board) => {
+        socket.emit('joinBoard', board._id);
+      });
+    }
 
     socket.on('board:updated', (updatedBoard) => {
       dispatch(
@@ -49,10 +56,24 @@ const DashboardPage = () => {
       );
     });
 
+    socket.on('board:member:invited', (data) => {
+      if (currentUser && data.email === currentUser.email) {
+        dispatch(boardsApi.util.invalidateTags(['Boards']));
+      }
+    });
+
+    socket.on('board:member:deleted', (userId) => {
+      if (currentUser && userId === currentUser._id) {
+        dispatch(boardsApi.util.invalidateTags(['Boards']));
+      }
+    });
+
     return () => {
       socket.off('board:updated');
+      socket.off('board:member:invited');
+      socket.disconnect();
     };
-  }, [boards, dispatch]);
+  }, [boards, currentUser, dispatch]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -3,6 +3,7 @@ import Board from '../models/board.model.js';
 import BoardMember from '../models/boardMember.model.js';
 import List from '../models/list.model.js';
 import Card from '../models/card.model.js';
+import User from '../models/user.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
@@ -25,7 +26,6 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
 
   // 2. Determine the current user's role for this board
   const isOwner = board.ownerId.toString() === currentUserId.toString();
-
   let myRole = 'viewer'; // Default fallback
   if (isOwner) {
     myRole = 'owner';
@@ -57,6 +57,7 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     lists: listsWithCards,
     myRole, // e.g., 'owner', 'editor', or 'viewer'
     isOwner, // Quick boolean check
+    userId: currentUserId,
   };
 };
 
@@ -114,4 +115,53 @@ export const deleteBoardService = async (boardId) => {
   } finally {
     session.endSession();
   }
+};
+
+export const inviteMemberToBoardService = async (req, boardId, email, role) => {
+  const board = await Board.findById(boardId);
+  const user = await User.findOne({ email });
+  if (!board) {
+    const error = new Error('Board not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  await BoardMember.create([{ boardId, userId: user._id, role }]);
+  await Board.findByIdAndUpdate(boardId, {
+    $push: { members: { user, role } },
+  });
+  return user;
+};
+
+export const updateBoardMemberService = async (boardId, userId, role) => {
+  const boardMember = await BoardMember.findOneAndUpdate(
+    { boardId, userId },
+    { role },
+    { returnDocument: 'after' },
+  );
+  const user = await User.findById(userId);
+  if (!user) {
+    const error = new Error('User not found');
+    error.statusCode = 404;
+    throw error;
+  }
+  await Board.findOneAndUpdate(
+    { _id: boardId, 'members.user': userId },
+    { $set: { 'members.$.role': role } },
+    { returnDocument: 'after' },
+  );
+  return boardMember;
+};
+
+export const deleteBoardMemberService = async (boardId, userId) => {
+  await BoardMember.findOneAndDelete({ boardId, userId });
+  await Board.findOneAndUpdate(
+    { _id: boardId, 'members.user': userId },
+    { $pull: { members: { user: userId } } },
+    { returnDocument: 'after' },
+  );
 };

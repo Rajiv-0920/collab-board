@@ -66,3 +66,56 @@ export const deleteBoard = async (req, res, next) => {
     next(error);
   }
 };
+
+export const inviteMemberToBoard = async (req, res, next) => {
+  try {
+    const { boardId } = req.params;
+    const { email, role } = req.body;
+    const invitedUser = await boardService.inviteMemberToBoardService(
+      req,
+      boardId,
+      email,
+      role,
+    );
+    io.to(invitedUser._id.toString()).emit('board:member:invited', {
+      email,
+      role,
+    });
+    return sendResponse(res, 200, true, 'Member invited successfully');
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateBoardMember = async (req, res, next) => {
+  try {
+    const { boardId, userId } = req.params;
+    const { role } = req.body;
+    const result = await boardService.updateBoardMemberService(
+      boardId,
+      userId,
+      role,
+    );
+    io.to(boardId).emit('board:member:updated', result);
+    return sendResponse(
+      res,
+      200,
+      true,
+      'Board member updated successfully',
+      result,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteBoardMember = async (req, res, next) => {
+  try {
+    const { boardId, userId } = req.params;
+    await boardService.deleteBoardMemberService(boardId, userId);
+    io.to(boardId).emit('board:member:deleted', userId);
+    return sendResponse(res, 200, true, 'Board member deleted successfully');
+  } catch (error) {
+    next(error);
+  }
+};

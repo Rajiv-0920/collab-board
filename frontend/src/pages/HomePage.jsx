@@ -4,12 +4,26 @@ import { useLogoutMutation } from '../services/authApi';
 import { setCredentials } from '../store/authSlice';
 import { baseApi } from '../services/baseApi';
 import { Link, useNavigate } from 'react-router';
+import { useEffect } from 'react';
+import { socket } from '../services/socket';
 
 const HomePage = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();
   const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
   const dispatch = useDispatch();
   const navigate = useNavigate();
+
+  // useEffect(() => {
+  //   if (!socket.connected) {
+  //     socket.connect();
+  //   }
+  //   if (me) {
+  //     socket.emit('registerUser', me);
+  //   }
+  //   return () => {
+  //     socket.disconnect();
+  //   };
+  // }, [me]);
 
   const handleLogout = async () => {
     try {
