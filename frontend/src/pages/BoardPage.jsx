@@ -1,4 +1,4 @@
-import { useParams } from 'react-router';
+import { useParams, useNavigate } from 'react-router';
 import { useGetBoardDetailsQuery } from '../services/boardsApi';
 import {
   useCreateListMutation,
@@ -20,6 +20,7 @@ import MembersList from '../components/board/MembersList';
 const BoardPage = () => {
   const { boardId } = useParams();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const currentUser = useSelector(selectCurrentUser);
   const [listBody, setListBody] = useState({ id: null, title: '' });
   const [errorMsg, setErrorMsg] = useState(null);
@@ -117,6 +118,41 @@ const BoardPage = () => {
       );
     });
 
+    socket.on('board:member:updated', (updatedMember) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          const member = draft.members.find(
+            (m) => m.user._id === updatedMember.userId,
+          );
+          if (member) {
+            member.role = updatedMember.role;
+          }
+          if (updatedMember.userId === draft.userId) {
+            draft.myRole = updatedMember.role;
+          }
+        }),
+      );
+    });
+
+    socket.on('board:member:deleted', (userId) => {
+      const currentUserId = currentUser._id;
+
+      if (userId === currentUserId) {
+        dispatch(boardsApi.util.invalidateTags(['Boards']));
+
+        navigate('/dashboard', { replace: true });
+        return;
+      }
+
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          if (draft && draft.members) {
+            draft.members = draft.members.filter((m) => m.user._id !== userId);
+          }
+        }),
+      );
+    });
+
     return () => {
       socket.off('board:updated');
       socket.off('list:created');
@@ -125,6 +161,8 @@ const BoardPage = () => {
       socket.off('card:deleted');
       socket.off('card:created');
       socket.off('card:updated');
+      socket.off('board:member:updated');
+      socket.off('board:member:deleted');
       socket.disconnect();
     };
   }, [boardId]);

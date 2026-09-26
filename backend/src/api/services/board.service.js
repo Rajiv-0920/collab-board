@@ -57,6 +57,7 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     lists: listsWithCards,
     myRole, // e.g., 'owner', 'editor', or 'viewer'
     isOwner, // Quick boolean check
+    userId: currentUserId,
   };
 };
 
@@ -133,6 +134,7 @@ export const inviteMemberToBoardService = async (req, boardId, email, role) => {
   await Board.findByIdAndUpdate(boardId, {
     $push: { members: { user, role } },
   });
+  return user;
 };
 
 export const updateBoardMemberService = async (boardId, userId, role) => {

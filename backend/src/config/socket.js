@@ -15,6 +15,11 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   console.log('+ A user connected: ', socket.id);
 
+  socket.on('registerUser', (userId) => {
+    console.log(`+ User ${socket.id} registered as ${userId}`);
+    socket.join(userId);
+  });
+
   socket.on('joinBoard', (boardId) => {
     socket.join(boardId);
     console.log(`+ User ${socket.id} joined board ${boardId}`);
