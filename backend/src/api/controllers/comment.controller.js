@@ -29,3 +29,13 @@ export const createComment = async (req, res, next) => {
     next(error);
   }
 };
+
+export const deleteComment = async (req, res, next) => {
+  try {
+    const { commentId } = req.params;
+    const result = await commentService.deleteComment(req, commentId);
+    return sendResponse(res, 200, true, 'Comment deleted successfully', result);
+  } catch (error) {
+    next(error);
+  }
+};

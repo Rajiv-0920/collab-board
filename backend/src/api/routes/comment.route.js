@@ -9,4 +9,11 @@ router.get('/', protect, requireRole('viewer'), controller.getComments);
 
 router.post('/', protect, requireRole('viewer'), controller.createComment);
 
+router.delete(
+  '/:commentId',
+  protect,
+  requireRole('viewer'),
+  controller.deleteComment,
+);
+
 export default router;
