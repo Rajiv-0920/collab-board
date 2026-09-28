@@ -2,7 +2,12 @@ import { useState } from 'react';
 import { useParams } from 'react-router';
 import { useGetBoardDetailsQuery } from '../../services/boardsApi';
 import { useDeleteCardMutation } from '../../services/cardApi';
-import { useCreateCommentMutation } from '../../services/commentApi';
+import {
+  useCreateCommentMutation,
+  useDeleteCommentMutation,
+} from '../../services/commentApi';
+import { useSelector } from 'react-redux';
+import { selectCurrentUser } from '../../store/authSlice';
 import { Draggable } from '@hello-pangea/dnd';
 import { formatDate } from '../../library/formatDate';
 
@@ -26,8 +31,11 @@ const BoardCard = ({
 
   const [createComment, { isLoading: isLoadingCreateComment }] =
     useCreateCommentMutation();
+  const [deleteComment, { isLoading: isLoadingDeleteComment }] =
+    useDeleteCommentMutation();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
+  const currentUser = useSelector(selectCurrentUser);
 
   const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
 
@@ -219,6 +227,21 @@ const BoardCard = ({
                         {comment.createdAt &&
                           ` | ${formatDate(comment.createdAt)}`}
                       </span>
+                      {(comment.userId._id === currentUser._id ||
+                        board.myRole === 'owner') && (
+                        <button
+                          onClick={() =>
+                            deleteComment({
+                              boardId,
+                              listId: list._id,
+                              cardId: card._id,
+                              commentId: comment._id,
+                            })
+                          }
+                        >
+                          Delete
+                        </button>
+                      )}
                     </li>
                   ))
                 ) : (

@@ -17,7 +17,18 @@ export const commentApi = baseApi.injectEndpoints({
       }),
       providesTags: ['Comment'],
     }),
+    deleteComment: builder.mutation({
+      query: ({ boardId, listId, cardId, commentId }) => ({
+        url: `/boards/${boardId}/lists/${listId}/cards/${cardId}/comments/${commentId}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Comment'],
+    }),
   }),
 });
 
-export const { useCreateCommentMutation, useGetCommentsQuery } = commentApi;
+export const {
+  useCreateCommentMutation,
+  useGetCommentsQuery,
+  useDeleteCommentMutation,
+} = commentApi;

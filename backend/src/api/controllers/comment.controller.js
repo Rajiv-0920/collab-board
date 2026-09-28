@@ -1,5 +1,6 @@
 import * as commentService from '../services/comment.service.js';
 import { sendResponse } from '../library/utils.js';
+import { io } from '../../config/socket.js';
 
 export const getComments = async (req, res, next) => {
   try {
@@ -20,10 +21,11 @@ export const getComments = async (req, res, next) => {
 export const createComment = async (req, res, next) => {
   try {
     const { text } = req.body;
-    const { cardId } = req.params;
+    const { cardId, boardId } = req.params;
     const userId = req.user._id;
 
     const result = await commentService.createComment({ text, cardId, userId });
+    io.to(boardId).emit('comment:created', result);
     return sendResponse(res, 201, true, 'Comment created successfully', result);
   } catch (error) {
     next(error);
@@ -32,8 +34,9 @@ export const createComment = async (req, res, next) => {
 
 export const deleteComment = async (req, res, next) => {
   try {
-    const { commentId } = req.params;
+    const { commentId, boardId } = req.params;
     const result = await commentService.deleteComment(req, commentId);
+    io.to(boardId).emit('comment:deleted', result);
     return sendResponse(res, 200, true, 'Comment deleted successfully', result);
   } catch (error) {
     next(error);
