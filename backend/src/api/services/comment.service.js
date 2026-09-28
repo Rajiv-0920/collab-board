@@ -3,13 +3,13 @@ import Comment from '../models/comment.model.js';
 export const getComments = async (cardId) => {
   const comments = await Comment.find({ cardId })
     .sort({ createdAt: -1 })
-    .populate('userId');
+    .populate('userId', 'name avatar');
   return comments;
 };
 
 export const createComment = async ({ text, cardId, userId }) => {
   const comment = await Comment.create({ text, cardId, userId });
-  await comment.populate('userId', 'name');
+  await comment.populate('userId', 'name avatar');
   return comment;
 };
 
@@ -20,6 +20,7 @@ export const deleteComment = async (req, commentId) => {
 
   const comment = await Comment.findOne({ _id: commentId, cardId }).populate(
     'userId',
+    'name avatar',
   );
   if (!comment) {
     const error = new Error('Comment not found');
