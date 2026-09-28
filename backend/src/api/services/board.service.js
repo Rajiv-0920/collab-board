@@ -4,6 +4,7 @@ import BoardMember from '../models/boardMember.model.js';
 import List from '../models/list.model.js';
 import Card from '../models/card.model.js';
 import User from '../models/user.model.js';
+import Comment from '../models/comment.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
@@ -39,7 +40,7 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     }
   }
 
-  // 3. Fetch lists and cards as before
+  // 3. Fetch lists and cards
   const lists = await List.find({ boardId }).sort({ order: 1 }).lean();
 
   const listsWithCards = await Promise.all(
@@ -47,11 +48,27 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
       const cards = await Card.find({ listId: list._id })
         .sort({ order: 1 })
         .lean();
-      return { ...list, cards };
+
+      // 4. For each card, fetch its comments (and optionally populate the user who wrote it)
+      const cardsWithComments = await Promise.all(
+        cards.map(async (card) => {
+          const comments = await Comment.find({ cardId: card._id })
+            .sort({ createdAt: 1 }) // Oldest comments first, or -1 for newest first
+            .populate('userId', 'name avatar') // Optional: populate user info if your comment schema has a user reference
+            .lean();
+
+          return {
+            ...card,
+            comments,
+          };
+        }),
+      );
+
+      return { ...list, cards: cardsWithComments };
     }),
   );
 
-  // 4. Return everything, including the populated members and computed role
+  // 5. Return everything, including the populated members and computed role
   return {
     ...board,
     lists: listsWithCards,

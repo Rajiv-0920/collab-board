@@ -134,6 +134,35 @@ const BoardPage = () => {
       );
     });
 
+    socket.on('comment:created', (comment) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          const list = draft.lists.find((l) =>
+            l.cards.find((c) => c._id === comment.cardId),
+          );
+          const card = list.cards.find((c) => c._id === comment.cardId);
+          const isCommentExists = card.comments.find(
+            (c) => c._id === comment._id,
+          );
+          if (!isCommentExists) {
+            card.comments.push(comment);
+          }
+        }),
+      );
+    });
+
+    socket.on('comment:deleted', (comment) => {
+      dispatch(
+        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
+          const list = draft.lists.find((l) =>
+            l.cards.find((c) => c._id === comment.cardId),
+          );
+          const card = list.cards.find((c) => c._id === comment.cardId);
+          card.comments = card.comments.filter((c) => c._id !== comment._id);
+        }),
+      );
+    });
+
     socket.on('board:member:deleted', (userId) => {
       const currentUserId = currentUser._id;
 
@@ -161,6 +190,8 @@ const BoardPage = () => {
       socket.off('card:deleted');
       socket.off('card:created');
       socket.off('card:updated');
+      socket.off('comment:created');
+      socket.off('comment:deleted');
       socket.off('board:member:updated');
       socket.off('board:member:deleted');
       socket.disconnect();

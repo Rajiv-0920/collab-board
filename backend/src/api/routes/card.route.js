@@ -4,6 +4,7 @@ import * as controller from '../controllers/card.controller.js';
 import { requireRole } from '../middlewares/requireRole.middleware.js';
 import { validate } from '../middlewares/validate.middleware.js';
 import { createCardSchema } from '../schemas/card.schemas.js';
+import commentsRoute from './comment.route.js';
 
 const router = express.Router({ mergeParams: true });
 
@@ -25,5 +26,7 @@ router.delete(
   requireRole('editor'),
   controller.deleteCard,
 );
+
+router.use('/:cardId/comments', commentsRoute);
 
 export default router;
