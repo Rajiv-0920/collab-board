@@ -5,3 +5,11 @@ export const createListSchema = z.object({
     title: z.string().min(1, 'List title is required').max(100),
   }),
 });
+
+export const updateListSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'List title is required').max(100),
+    prevOrder: z.number().optional().nullable(),
+    nextOrder: z.number().optional().nullable(),
+  }),
+});

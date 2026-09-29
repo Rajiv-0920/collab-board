@@ -5,3 +5,12 @@ export const createCardSchema = z.object({
     title: z.string().min(1, 'Card title is required').max(100),
   }),
 });
+
+export const updateCardSchema = z.object({
+  body: z.object({
+    title: z.string().min(1, 'Card title is required').max(100),
+    prevOrder: z.number().optional().nullable(),
+    nextOrder: z.number().optional().nullable(),
+    listId: z.string().optional(),
+  }),
+});

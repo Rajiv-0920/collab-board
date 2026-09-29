@@ -1,5 +1,6 @@
 import Card from '../models/card.model.js';
 import List from '../models/list.model.js';
+import Comment from '../models/comment.model.js';
 
 export const getCardsService = async (listId) => {
   const cards = await Card.find({ listId }).sort({ order: 1 });
@@ -17,9 +18,17 @@ export const createCardService = async (title, listId) => {
   return card;
 };
 
-export const updateCardService = async (cardId, payload) => {
-  const { prevOrder, nextOrder, listId, ...data } = payload;
-
+export const updateCardService = async ({
+  cardId,
+  title,
+  prevOrder,
+  nextOrder,
+  listId,
+}) => {
+  const data = {
+    title,
+    listId,
+  };
   if (prevOrder !== undefined || nextOrder !== undefined) {
     const parsedPrevOrder =
       prevOrder !== null && prevOrder !== undefined ? Number(prevOrder) : null;
@@ -76,7 +85,12 @@ export const updateCardService = async (cardId, payload) => {
     throw new Error('Card not found');
   }
 
-  return result;
+  const comments = await Comment.find({ cardId }).populate(
+    'userId',
+    'name avatar',
+  );
+
+  return { ...result.toObject(), comments };
 };
 
 export const deleteCardService = async (cardId) => {
