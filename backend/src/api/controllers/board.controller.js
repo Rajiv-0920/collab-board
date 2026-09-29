@@ -48,6 +48,22 @@ export const getBoardDetails = async (req, res, next) => {
   }
 };
 
+export const getBoardActivity = async (req, res, next) => {
+  try {
+    const { boardId } = req.params;
+    const result = await boardService.getBoardActivityService(boardId);
+    return sendResponse(
+      res,
+      200,
+      true,
+      'Board activity retrieved successfully',
+      result,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const updateBoard = async (req, res, next) => {
   try {
     const { boardId } = req.params;

@@ -5,6 +5,7 @@ import List from '../models/list.model.js';
 import Card from '../models/card.model.js';
 import User from '../models/user.model.js';
 import Comment from '../models/comment.model.js';
+import Activity from '../models/activity.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
@@ -106,6 +107,30 @@ export const createBoardService = async (req, { title, description }) => {
 export const getBoardByIdService = async (boardId) => {
   const board = await Board.findById(boardId);
   return board;
+};
+
+export const getBoardActivityService = async (queryCriteria) => {
+  const { boardId, status, page = 1, limit = 10, before } = queryCriteria;
+
+  const filter = {};
+  if (boardId) filter.boardId = boardId;
+  if (status) filter.status = status;
+
+  if (before) {
+    filter.createdAt = { $lt: new Date(before) };
+  }
+
+  const limitNum = Number(limit);
+  const skip = (Number(page) - 1) * limitNum;
+
+  const activity = await Activity.find(filter)
+    .populate('userId', 'name')
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limitNum)
+    .lean();
+
+  return activity;
 };
 
 export const updateBoardService = async (boardId, data) => {
