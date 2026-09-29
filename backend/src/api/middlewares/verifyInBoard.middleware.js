@@ -6,6 +6,7 @@ export const verifyListInBoard = async (req, res, next) => {
     const { boardId, listId } = req.params;
     const list = await List.findOne({ _id: listId, boardId });
     if (!list) return res.status(404).json({ error: 'List not found' });
+    req.list = list;
     next();
   } catch (error) {
     next(error);
@@ -17,9 +18,11 @@ export const verifyCardInBoard = async (req, res, next) => {
     const { boardId, listId, cardId } = req.params;
     const list = await List.findOne({ _id: listId, boardId });
     if (!list) return res.status(404).json({ error: 'List not found' });
+    req.list = list;
 
     const card = await Card.findOne({ _id: cardId, listId });
     if (!card) return res.status(404).json({ error: 'Card not found' });
+    req.card = card;
     next();
   } catch (error) {
     next(error);

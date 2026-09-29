@@ -1,6 +1,7 @@
 import * as boardService from '../services/board.service.js';
 import { sendResponse } from '../library/utils.js';
 import { io } from '../../config/socket.js';
+import { logActivity } from '../services/activity.service.js';
 
 export const getBoard = async (req, res, next) => {
   try {
@@ -51,8 +52,28 @@ export const updateBoard = async (req, res, next) => {
   try {
     const { boardId } = req.params;
     const result = await boardService.updateBoardService(boardId, req.body);
-    io.to(boardId).emit('board:updated', result);
-    return sendResponse(res, 200, true, 'Board updated successfully', result);
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'board:updated',
+      entityType: 'board',
+      entityId: boardId,
+      meta: {
+        oldTitle: result.oldTitle,
+        oldDescription: result.oldDescription,
+        newTitle: result.board.title,
+        newDescription: result.board.description,
+      },
+    });
+    io.to(boardId).emit('board:updated', result.board);
+    return sendResponse(
+      res,
+      200,
+      true,
+      'Board updated successfully',
+      result,
+      result.board,
+    );
   } catch (error) {
     next(error);
   }
@@ -77,6 +98,17 @@ export const inviteMemberToBoard = async (req, res, next) => {
       email,
       role,
     );
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'board:member:invited',
+      entityType: 'member',
+      entityId: invitedUser._id,
+      meta: {
+        invitedUserName: invitedUser.name,
+        role: role,
+      },
+    });
     io.to(invitedUser._id.toString()).emit('board:member:invited', {
       email,
       role,
@@ -96,6 +128,18 @@ export const updateBoardMember = async (req, res, next) => {
       userId,
       role,
     );
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'board:member:updated',
+      entityType: 'member',
+      entityId: result._id,
+      meta: {
+        targetUserName: result.name,
+        oldRole: result.role === 'editor' ? 'viewer' : 'editor',
+        newRole: result.role,
+      },
+    });
     io.to(boardId).emit('board:member:updated', result);
     return sendResponse(
       res,
@@ -112,7 +156,20 @@ export const updateBoardMember = async (req, res, next) => {
 export const deleteBoardMember = async (req, res, next) => {
   try {
     const { boardId, userId } = req.params;
-    await boardService.deleteBoardMemberService(boardId, userId);
+    const deletedMember = await boardService.deleteBoardMemberService(
+      boardId,
+      userId,
+    );
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'board:member:deleted',
+      entityType: 'member',
+      entityId: deletedMember._id,
+      meta: {
+        deletedUserName: deletedMember.name,
+      },
+    });
     io.to(boardId).emit('board:member:deleted', userId);
     return sendResponse(res, 200, true, 'Board member deleted successfully');
   } catch (error) {

@@ -1,6 +1,8 @@
 import * as cardService from '../services/card.service.js';
 import { sendResponse } from '../library/utils.js';
 import { io } from '../../config/socket.js';
+import { logActivity } from '../services/activity.service.js';
+import { Types } from 'mongoose';
 
 export const getCards = async (req, res, next) => {
   try {
@@ -13,11 +15,19 @@ export const getCards = async (req, res, next) => {
 
 export const createCard = async (req, res, next) => {
   try {
-    const { boardId } = req.params;
-    const result = await cardService.createCardService(
-      req.body.title,
-      req.params.listId,
-    );
+    const { boardId, listId } = req.params;
+    const result = await cardService.createCardService(req.body.title, listId);
+
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'card:created',
+      listId,
+      entityId: result._id,
+      entityType: 'card',
+      meta: { cardTitle: result.title, listId, listTitle: req.list.title },
+    });
+
     io.to(boardId).emit('card:created', result);
     return sendResponse(res, 201, true, 'Card created successfully', result);
   } catch (error) {
@@ -38,6 +48,23 @@ export const updateCard = async (req, res, next) => {
       cardId,
     });
 
+    if (listId && listId !== result.listId) {
+      await logActivity({
+        boardId,
+        userId: req.user._id,
+        action: 'card:moved',
+        entityType: 'card',
+        entityId: result._id,
+        meta: {
+          cardTitle: result.title,
+          fromListId: new Types.ObjectId(req.list._id),
+          fromListTitle: req.list.title,
+          toListTitle: result.listId.title,
+          toListId: new Types.ObjectId(result.listId._id),
+        },
+      });
+    }
+
     io.to(boardId).emit('card:updated', result);
     return sendResponse(res, 200, true, 'Card updated successfully', result);
   } catch (error) {
@@ -47,9 +74,20 @@ export const updateCard = async (req, res, next) => {
 
 export const deleteCard = async (req, res, next) => {
   try {
-    const { boardId } = req.params;
-    await cardService.deleteCardService(req.params.cardId);
-    io.to(boardId).emit('card:deleted', req.params.cardId);
+    const { boardId, cardId } = req.params;
+    const result = await cardService.deleteCardService(cardId);
+    await logActivity({
+      boardId,
+      userId: req.user._id,
+      action: 'card:deleted',
+      entityType: 'card',
+      entityId: cardId,
+      meta: {
+        cardTitle: result.title,
+        listTitle: result.listId.title,
+      },
+    });
+    io.to(boardId).emit('card:deleted', cardId);
     sendResponse(res, 200, true, 'Card deleted successfully');
   } catch (error) {
     next(error);

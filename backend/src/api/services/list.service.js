@@ -50,6 +50,8 @@ export const updateListService = async (
 };
 
 export const deleteListService = async (listId) => {
-  await List.findByIdAndDelete(listId);
+  const cardCount = await Card.countDocuments({ listId });
+  const list = await List.findByIdAndDelete(listId);
   await Card.deleteMany({ listId });
+  return { list, cardCount };
 };

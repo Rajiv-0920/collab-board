@@ -110,9 +110,15 @@ export const getBoardByIdService = async (boardId) => {
 
 export const updateBoardService = async (boardId, data) => {
   const board = await Board.findByIdAndUpdate(boardId, data, {
-    returnDocument: 'after',
-  });
-  return board;
+    returnDocument: 'before',
+    upsert: true,
+  }).lean();
+  const newBoard = { ...board, ...data };
+  return {
+    board: newBoard,
+    oldTitle: board.title,
+    oldDescription: board.description,
+  };
 };
 
 export const deleteBoardService = async (boardId) => {
@@ -175,10 +181,14 @@ export const updateBoardMemberService = async (boardId, userId, role) => {
 };
 
 export const deleteBoardMemberService = async (boardId, userId) => {
-  await BoardMember.findOneAndDelete({ boardId, userId });
+  const boardMember = await BoardMember.findOneAndDelete({
+    boardId,
+    userId,
+  }).populate('userId', 'name');
   await Board.findOneAndUpdate(
     { _id: boardId, 'members.user': userId },
     { $pull: { members: { user: userId } } },
     { returnDocument: 'after' },
   );
+  return boardMember.userId;
 };
