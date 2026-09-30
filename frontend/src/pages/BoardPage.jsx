@@ -16,6 +16,7 @@ import { socket } from '../services/socket';
 import { useDispatch } from 'react-redux';
 import { boardsApi } from '../services/boardsApi';
 import MembersList from '../components/board/MembersList';
+import BoardActivity from '../components/board/BoardActivity';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -374,6 +375,7 @@ const BoardPage = () => {
           )}
         </Droppable>
       </DragDropContext>
+      <BoardActivity />
     </div>
   );
 };

@@ -202,7 +202,7 @@ export const updateBoardMemberService = async (boardId, userId, role) => {
     { $set: { 'members.$.role': role } },
     { returnDocument: 'after' },
   );
-  return boardMember;
+  return { boardMember, user };
 };
 
 export const deleteBoardMemberService = async (boardId, userId) => {

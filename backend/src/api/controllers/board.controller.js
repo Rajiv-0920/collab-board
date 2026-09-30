@@ -139,7 +139,7 @@ export const updateBoardMember = async (req, res, next) => {
   try {
     const { boardId, userId } = req.params;
     const { role } = req.body;
-    const result = await boardService.updateBoardMemberService(
+    const { boardMember, user } = await boardService.updateBoardMemberService(
       boardId,
       userId,
       role,
@@ -149,20 +149,20 @@ export const updateBoardMember = async (req, res, next) => {
       userId: req.user._id,
       action: 'board:member:updated',
       entityType: 'member',
-      entityId: result._id,
+      entityId: boardMember._id,
       meta: {
-        targetUserName: result.name,
-        oldRole: result.role === 'editor' ? 'viewer' : 'editor',
-        newRole: result.role,
+        targetUserName: user.name,
+        oldRole: boardMember.role === 'editor' ? 'viewer' : 'editor',
+        newRole: boardMember.role,
       },
     });
-    io.to(boardId).emit('board:member:updated', result);
+    io.to(boardId).emit('board:member:updated', boardMember);
     return sendResponse(
       res,
       200,
       true,
       'Board member updated successfully',
-      result,
+      boardMember,
     );
   } catch (error) {
     next(error);
