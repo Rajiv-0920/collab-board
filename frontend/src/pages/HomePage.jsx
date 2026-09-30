@@ -13,18 +13,6 @@ const HomePage = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // useEffect(() => {
-  //   if (!socket.connected) {
-  //     socket.connect();
-  //   }
-  //   if (me) {
-  //     socket.emit('registerUser', me);
-  //   }
-  //   return () => {
-  //     socket.disconnect();
-  //   };
-  // }, [me]);
-
   const handleLogout = async () => {
     try {
       await logout().unwrap();
@@ -44,6 +32,8 @@ const HomePage = () => {
       <button onClick={() => handleLogout()}>Logout</button>
       <br />
       <Link to="/dashboard">Go to Dashboard</Link>
+      &nbsp; &nbsp; &nbsp; &nbsp;
+      <Link to="/profile">Go to Profile</Link>
     </div>
   );
 };
