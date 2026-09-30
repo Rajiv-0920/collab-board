@@ -14,7 +14,15 @@ export const userApi = baseApi.injectEndpoints({
         } catch (error) {}
       },
     }),
+    updateMe: builder.mutation({
+      query: (formData) => ({
+        url: 'user/profile',
+        method: 'PATCH',
+        body: formData,
+      }),
+      invalidatesTags: ['User'],
+    }),
   }),
 });
 
-export const { useGetMeQuery } = userApi;
+export const { useGetMeQuery, useUpdateMeMutation } = userApi;
