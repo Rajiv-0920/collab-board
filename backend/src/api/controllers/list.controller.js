@@ -41,17 +41,19 @@ export const updateList = async (req, res, next) => {
   try {
     const { boardId, listId } = req.params;
     const result = await listService.updateListService(listId, req.body);
-    await logActivity({
-      boardId,
-      userId: req.user._id,
-      action: 'list:updated',
-      entityType: 'list',
-      entityId: result._id,
-      meta: {
-        oldListTitle: req.list.title,
-        newListTitle: result.title,
-      },
-    });
+    if (result.order === req.list.order) {
+      await logActivity({
+        boardId,
+        userId: req.user._id,
+        action: 'list:updated',
+        entityType: 'list',
+        entityId: result._id,
+        meta: {
+          oldListTitle: req.list.title,
+          newListTitle: result.title,
+        },
+      });
+    }
     io.to(boardId).emit('list:updated', result);
     return sendResponse(res, 200, true, 'List updated successfully', result);
   } catch (error) {
