@@ -47,7 +47,7 @@ export const updateCard = async (req, res, next) => {
       listId,
       cardId,
     });
-
+    let isMoved = false;
     if (listId && listId !== result.listId) {
       await logActivity({
         boardId,
@@ -63,9 +63,10 @@ export const updateCard = async (req, res, next) => {
           toListId: new Types.ObjectId(result.listId._id),
         },
       });
+      isMoved = true;
     }
 
-    io.to(boardId).emit('card:updated', result);
+    io.to(boardId).emit('card:updated', { result, isMoved });
     return sendResponse(res, 200, true, 'Card updated successfully', result);
   } catch (error) {
     next(error);

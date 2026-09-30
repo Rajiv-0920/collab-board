@@ -1,4 +1,5 @@
 import Activity from '../models/activity.model.js';
+import { io } from '../../config/socket.js';
 
 export const logActivity = async ({
   boardId,
@@ -9,7 +10,7 @@ export const logActivity = async ({
   meta = {},
 }) => {
   try {
-    await Activity.create({
+    const entry = await Activity.create({
       boardId,
       userId,
       action,
@@ -17,6 +18,9 @@ export const logActivity = async ({
       entityId,
       meta,
     });
+    const populated = await entry.populate('userId', 'name avatar');
+    io.to(boardId).emit('activity:created', populated);
+    return populated;
   } catch (error) {
     console.error('Failed to log activity:', error);
     throw error;

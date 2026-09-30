@@ -1,11 +1,29 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useGetBoardActivityQuery } from '../../services/boardsApi';
 import { useParams } from 'react-router';
+import { socket } from '../../services/socket';
 
 const BoardActivity = () => {
   const { boardId } = useParams();
-  const { data: activities = [] } = useGetBoardActivityQuery(boardId);
-  console.log(activities);
+  const { data: activityData, refetch } = useGetBoardActivityQuery(boardId);
+  console.log(activityData);
+
+  useEffect(() => {
+    socket.connect();
+    socket.emit('joinBoard', boardId);
+
+    socket.on('activity:created', (activity) => {
+      refetch();
+    });
+
+    return () => {
+      socket.off('activity:created');
+      socket.disconnect();
+    };
+  }, [activityData]);
+
+  const { activities } = activityData || [];
+
   return (
     <table>
       <thead>
@@ -17,7 +35,7 @@ const BoardActivity = () => {
         </tr>
       </thead>
       <tbody>
-        {activities.map((activity) => {
+        {activities?.map((activity) => {
           const { _id, userId, action, meta, createdAt } = activity;
 
           return (
@@ -37,7 +55,6 @@ const BoardActivity = () => {
 export default BoardActivity;
 
 const renderMetaDetails = (action, meta) => {
-  console.log(meta);
   if (!meta) return '';
 
   switch (action) {

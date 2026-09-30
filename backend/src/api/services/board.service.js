@@ -110,27 +110,38 @@ export const getBoardByIdService = async (boardId) => {
 };
 
 export const getBoardActivityService = async (queryCriteria) => {
-  const { boardId, status, page = 1, limit = 10, before } = queryCriteria;
+  const { boardId, status, page = 1, limit = 10 } = queryCriteria;
 
   const filter = {};
   if (boardId) filter.boardId = boardId;
   if (status) filter.status = status;
 
-  if (before) {
-    filter.createdAt = { $lt: new Date(before) };
-  }
+  const pageNum = Math.max(1, Number(page));
+  const limitNum = Math.max(1, Number(limit));
+  const skip = (pageNum - 1) * limitNum;
 
-  const limitNum = Number(limit);
-  const skip = (Number(page) - 1) * limitNum;
+  // Run queries in parallel for better performance
+  const [activities, total] = await Promise.all([
+    Activity.find(filter)
+      .populate('userId', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum)
+      .lean(),
+    Activity.countDocuments(filter),
+  ]);
 
-  const activity = await Activity.find(filter)
-    .populate('userId', 'name')
-    .sort({ createdAt: -1 })
-    .skip(skip)
-    .limit(limitNum)
-    .lean();
-
-  return activity;
+  return {
+    activities,
+    pagination: {
+      total,
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
+      hasNextPage: pageNum * limitNum < total,
+      hasPrevPage: pageNum > 1,
+    },
+  };
 };
 
 export const updateBoardService = async (boardId, data) => {
