@@ -16,6 +16,7 @@ import { socket } from '../services/socket';
 import { useDispatch } from 'react-redux';
 import { boardsApi } from '../services/boardsApi';
 import MembersList from '../components/board/MembersList';
+import BoardActivity from '../components/board/BoardActivity';
 
 const BoardPage = () => {
   const { boardId } = useParams();
@@ -91,18 +92,42 @@ const BoardPage = () => {
       );
     });
 
-    socket.on('card:updated', (updatedCard) => {
+    socket.on('card:updated', ({ result, isMoved }) => {
+      const resultCardId = result._id.toString();
+      const targetListId = (result.listId?._id || result.listId).toString();
+
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
-          for (const list of draft.lists) {
-            list.cards = list.cards.filter((c) => c._id !== updatedCard._id);
-          }
-          const targetList = draft.lists.find(
-            (l) => l._id === updatedCard.listId,
-          );
-          if (targetList) {
-            targetList.cards.push(updatedCard);
-            targetList.cards.sort((a, b) => a.order - b.order);
+          if (isMoved) {
+            for (const list of draft.lists) {
+              list.cards = list.cards.filter(
+                (c) => c._id.toString() !== resultCardId,
+              );
+            }
+
+            const targetList = draft.lists.find(
+              (l) => l._id.toString() === targetListId,
+            );
+            if (targetList) {
+              targetList.cards.push(result);
+              targetList.cards.sort((a, b) => a.order - b.order);
+            }
+          } else {
+            const list = draft.lists.find(
+              (l) => l._id.toString() === targetListId,
+            );
+            if (list) {
+              const cardIndex = list.cards.findIndex(
+                (c) => c._id.toString() === resultCardId,
+              );
+              if (cardIndex !== -1) {
+                list.cards[cardIndex] = {
+                  ...list.cards[cardIndex],
+                  ...result,
+                };
+              }
+              list.cards.sort((a, b) => a.order - b.order);
+            }
           }
         }),
       );
@@ -374,6 +399,7 @@ const BoardPage = () => {
           )}
         </Droppable>
       </DragDropContext>
+      <BoardActivity />
     </div>
   );
 };

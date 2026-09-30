@@ -10,7 +10,7 @@ export const cardSchema = new mongoose.Schema(
     },
     order: { type: Number, required: true, default: 0 },
   },
-  { timestamsp: true },
+  { timestamps: true },
 );
 
 const Card = mongoose.model('Card', cardSchema);

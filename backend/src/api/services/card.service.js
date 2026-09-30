@@ -79,7 +79,7 @@ export const updateCardService = async ({
   // --- Apply update ---
   const result = await Card.findByIdAndUpdate(cardId, data, {
     returnDocument: 'after',
-  });
+  }).populate('listId', 'title');
 
   if (!result) {
     throw new Error('Card not found');
@@ -94,5 +94,5 @@ export const updateCardService = async ({
 };
 
 export const deleteCardService = async (cardId) => {
-  await Card.findByIdAndDelete(cardId);
+  return await Card.findByIdAndDelete(cardId).populate('listId', 'title');
 };

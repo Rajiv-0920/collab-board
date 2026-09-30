@@ -17,6 +17,7 @@ import {
   inviteMemberToBoard,
   updateBoardMember,
   deleteBoardMember,
+  getBoardActivity,
 } from '../controllers/board.controller.js';
 import { requireRole } from '../middlewares/requireRole.middleware.js';
 import { updateBoardMemberSchema } from '../schemas/board.schemas.js';
@@ -33,6 +34,13 @@ router.get(
   protect,
   requireRole('viewer'),
   getBoardDetails,
+);
+
+router.get(
+  '/:boardId/activity',
+  protect,
+  requireRole('viewer'),
+  getBoardActivity,
 );
 
 router.post('/', protect, validate(createBoardSchema), createBoard);
