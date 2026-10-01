@@ -9,7 +9,11 @@ import Activity from '../models/activity.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
-  if (!boardMember) throw new Error('Board member not found');
+  if (!boardMember) {
+    const error = new Error('Board member not found');
+    error.status = 404;
+    throw error;
+  }
   const board = await Board.find({
     _id: { $in: boardMember.map((m) => m.boardId) },
   });
@@ -23,7 +27,9 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     .lean();
 
   if (!board) {
-    throw new Error('Board not found');
+    const error = new Error('Board not found');
+    error.status = 404;
+    throw error;
   }
 
   // 2. Determine the current user's role for this board

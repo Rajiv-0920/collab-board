@@ -52,7 +52,9 @@ export const updateCardService = async ({
   if (listId) {
     const currentCard = await Card.findById(cardId);
     if (!currentCard) {
-      throw new Error('Card not found');
+      const error = new Error('Card not found');
+      error.status = 404;
+      throw error;
     }
 
     if (String(currentCard.listId) !== String(listId)) {
@@ -62,13 +64,21 @@ export const updateCardService = async ({
       ]);
 
       if (!currentList) {
-        throw new Error('Current list not found');
+        const error = new Error('Current list not found');
+        error.status = 404;
+        throw error;
       }
       if (!targetList) {
-        throw new Error('Target list not found');
+        const error = new Error('Target list not found');
+        error.status = 404;
+        throw error;
       }
       if (String(targetList.boardId) !== String(currentList.boardId)) {
-        throw new Error('Cannot move card to a list on a different board');
+        const error = new Error(
+          'Cannot move card to a list on a different board',
+        );
+        error.status = 400;
+        throw error;
       }
 
       data.listId = listId;
@@ -81,7 +91,9 @@ export const updateCardService = async ({
   }).populate('listId', 'title');
 
   if (!result) {
-    throw new Error('Card not found');
+    const error = new Error('Card not found');
+    error.status = 404;
+    throw error;
   }
 
   const comments = await Comment.find({ cardId }).populate(
