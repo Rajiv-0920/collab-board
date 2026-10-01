@@ -6,7 +6,8 @@ import { Types } from 'mongoose';
 
 export const getCards = async (req, res, next) => {
   try {
-    const cards = await cardService.getCardsService(req.params.listId);
+    const { boardId, listId } = req.params;
+    const cards = await cardService.getCardsService(listId, boardId);
     return sendResponse(res, 200, true, 'Cards retrieved successfully', cards);
   } catch (error) {
     next(error);
@@ -16,7 +17,9 @@ export const getCards = async (req, res, next) => {
 export const createCard = async (req, res, next) => {
   try {
     const { boardId, listId } = req.params;
-    const result = await cardService.createCardService(req.body.title, listId);
+    const { title } = req.body;
+
+    const result = await cardService.createCardService(title, listId, boardId);
 
     await logActivity({
       boardId,

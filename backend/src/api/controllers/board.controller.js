@@ -51,7 +51,14 @@ export const getBoardDetails = async (req, res, next) => {
 export const getBoardActivity = async (req, res, next) => {
   try {
     const { boardId } = req.params;
-    const result = await boardService.getBoardActivityService(boardId);
+    const { status, page = 1, limit = 10 } = req.query;
+
+    const result = await boardService.getBoardActivityService({
+      boardId,
+      page,
+      limit,
+      status,
+    });
     return sendResponse(
       res,
       200,

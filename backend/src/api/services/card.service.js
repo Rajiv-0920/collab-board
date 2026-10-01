@@ -2,19 +2,18 @@ import Card from '../models/card.model.js';
 import List from '../models/list.model.js';
 import Comment from '../models/comment.model.js';
 
-export const getCardsService = async (listId) => {
-  const cards = await Card.find({ listId }).sort({ order: 1 });
+export const getCardsService = async (listId, boardId) => {
+  const cards = await Card.find({ listId, boardId }).sort({ order: 1 });
   return cards;
 };
 
-export const createCardService = async (title, listId) => {
-  // Find the list with the highest order number
-  const lastCard = await Card.findOne({ listId }).sort({ order: -1 });
+export const createCardService = async (title, listId, boardId) => {
+  const lastCard = await Card.findOne({ listId, boardId }).sort({ order: -1 });
 
   // If cards exist, add 1024 to the last order; otherwise start at 1024
   const newOrder = lastCard ? lastCard.order + 1024 : 1024;
 
-  const card = await Card.create({ title, listId, order: newOrder });
+  const card = await Card.create({ title, listId, order: newOrder, boardId });
   return card;
 };
 

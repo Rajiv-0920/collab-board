@@ -3,6 +3,11 @@ import mongoose from 'mongoose';
 export const cardSchema = new mongoose.Schema(
   {
     title: { type: String, required: true },
+    boardId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Board',
+      required: true,
+    },
     listId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'List',

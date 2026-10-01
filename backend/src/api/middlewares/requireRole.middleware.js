@@ -6,7 +6,10 @@ const ROLE_RANK = { viewer: 1, editor: 2, owner: 3 };
 export const requireRole = (minimumRole) => {
   return async function (req, res, next) {
     const userId = req.user._id || req.user.id;
-    const boardId = new mongoose.Types.ObjectId(req.params.boardId);
+    const { boardId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(boardId))
+      return res.status(400).json({ error: 'Invalid boardId' });
 
     const role = await getUserRole(userId, boardId);
 

@@ -109,9 +109,12 @@ export const getBoardByIdService = async (boardId) => {
   return board;
 };
 
-export const getBoardActivityService = async (queryCriteria) => {
-  const { boardId, status, page = 1, limit = 10 } = queryCriteria;
-
+export const getBoardActivityService = async ({
+  boardId,
+  status,
+  page,
+  limit,
+}) => {
   const filter = {};
   if (boardId) filter.boardId = boardId;
   if (status) filter.status = status;
@@ -166,6 +169,7 @@ export const deleteBoardService = async (boardId) => {
     await BoardMember.deleteMany({ boardId }, { session });
     await List.deleteMany({ boardId }, { session });
     await Card.deleteMany({ boardId }, { session });
+    await Activity.deleteMany({ boardId }, { session });
 
     await session.commitTransaction();
   } catch (error) {
