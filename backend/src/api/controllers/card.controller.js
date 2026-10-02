@@ -17,9 +17,13 @@ export const getCards = async (req, res, next) => {
 export const createCard = async (req, res, next) => {
   try {
     const { boardId, listId } = req.params;
-    const { title } = req.body;
+    const { title, description, dueDate, labels, assigneeIds } = req.body;
 
-    const result = await cardService.createCardService(title, listId, boardId);
+    const result = await cardService.createCardService(
+      { title, description, dueDate, labels, assigneeIds },
+      listId,
+      boardId,
+    );
 
     await logActivity({
       boardId,
@@ -41,10 +45,23 @@ export const createCard = async (req, res, next) => {
 export const updateCard = async (req, res, next) => {
   try {
     const { boardId, cardId } = req.params;
-    const { title, prevOrder, nextOrder, listId } = req.body;
+    const {
+      title,
+      description,
+      dueDate,
+      labels,
+      assigneeIds,
+      prevOrder,
+      nextOrder,
+      listId,
+    } = req.body;
 
     const result = await cardService.updateCardService({
       title,
+      description,
+      dueDate,
+      labels,
+      assigneeIds,
       prevOrder,
       nextOrder,
       listId,

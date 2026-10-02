@@ -3,30 +3,26 @@ import { baseApi } from './baseApi';
 export const cardApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     createCard: builder.mutation({
-      query: ({ boardId, listId, cardTitle }) => ({
+      query: ({ boardId, listId, cardBody }) => ({
         url: `/boards/${boardId}/lists/${listId}/cards`,
         method: 'POST',
-        body: { title: cardTitle },
+        body: cardBody,
       }),
       transformResponse: (response) => response.data,
       invalidatesTags: ['Boards', 'List', 'Card'],
     }),
     updateCard: builder.mutation({
-      query: ({
-        boardId,
-        listId,
-        cardId,
-        cardTitle,
-        prevOrder,
-        nextOrder,
-        newListId,
-      }) => ({
+      query: ({ boardId, listId, cardId, cardBody, newListId }) => ({
         url: `/boards/${boardId}/lists/${listId}/cards/${cardId}`,
         method: 'PATCH',
         body: {
-          title: cardTitle,
-          prevOrder,
-          nextOrder,
+          title: cardBody.title,
+          description: cardBody.description,
+          dueDate: cardBody.dueDate,
+          labels: cardBody.labels,
+          assigneeIds: cardBody.assigneeIds,
+          prevOrder: cardBody.prevOrder,
+          nextOrder: cardBody.nextOrder,
           ...(newListId && { listId: newListId }),
         },
       }),

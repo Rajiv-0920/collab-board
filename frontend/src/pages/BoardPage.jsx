@@ -316,11 +316,17 @@ const BoardPage = () => {
       try {
         await updateCard({
           boardId,
-          listId: source.droppableId, // old list (URL)
           cardId: moved._id,
-          cardTitle: moved.title,
-          prevOrder: prevCard ? prevCard.order : null,
-          nextOrder: nextCard ? nextCard.order : null,
+          listId: source.droppableId,
+          cardBody: {
+            title: moved.title,
+            description: moved.description ?? undefined,
+            labels: moved.labels,
+            assigneeIds: moved.assigneeIds?.map((a) => a._id ?? a),
+            dueDate: moved.dueDate ?? undefined,
+            prevOrder: prevCard ? prevCard.order : null,
+            nextOrder: nextCard ? nextCard.order : null,
+          },
           newListId: isCrossList ? destination.droppableId : undefined,
         }).unwrap();
       } catch (err) {

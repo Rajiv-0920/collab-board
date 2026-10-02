@@ -39,6 +39,9 @@ const BoardCard = ({
 
   const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
 
+  // Due date is overdue if it's in the past
+  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
+
   function moveCardUp({ cards }) {
     const card = cards[cardIndex];
     const prevCard = cards[cardIndex - 1];
@@ -75,7 +78,14 @@ const BoardCard = ({
 
   const handleUpdate = () => {
     setIsUpdate(true);
-    setCardBody({ id: card._id, title: card.title });
+    setCardBody({
+      id: card._id,
+      title: card.title,
+      description: card.description,
+      dueDate: card.dueDate,
+      labels: card.labels,
+      assigneeIds: card.assigneeIds,
+    });
   };
 
   const handleCommentSubmit = (e) => {
@@ -156,6 +166,67 @@ const BoardCard = ({
               )}
             </div>
           </div>
+
+          {/* Description */}
+          {card.description && (
+            <p style={{ margin: '6px 0', fontSize: '12px', color: '#555' }}>
+              {card.description}
+            </p>
+          )}
+
+          {/* Labels */}
+          {card.labels?.length > 0 && (
+            <div
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '4px',
+                marginTop: '6px',
+              }}
+            >
+              {card.labels.map((label) => (
+                <span
+                  key={label}
+                  style={{
+                    fontSize: '11px',
+                    padding: '2px 6px',
+                    borderRadius: '10px',
+                    background: '#e8f0fe',
+                    color: '#1a56db',
+                  }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Due date + assignees */}
+          {(card.dueDate || card.assigneeIds?.length > 0) && (
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                marginTop: '6px',
+                fontSize: '11px',
+              }}
+            >
+              {card.dueDate ? (
+                <span style={{ color: isOverdue ? '#d93025' : '#666' }}>
+                  📅 {formatDate(card.dueDate)}
+                  {isOverdue && ' (overdue)'}
+                </span>
+              ) : (
+                <span />
+              )}
+
+              {card.assigneeIds?.length > 0 && (
+                <span style={{ color: '#666' }}>
+                  👤 {card?.assigneeIds.map((assignTo) => assignTo.name + ', ')}
+                </span>
+              )}
+            </div>
+          )}
 
           {/* Comment Toggle Button */}
           <div style={{ marginTop: '8px' }}>

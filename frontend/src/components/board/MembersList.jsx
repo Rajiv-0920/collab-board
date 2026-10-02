@@ -15,6 +15,9 @@ const MembersList = () => {
     isLoading: isBoardLoading,
     error: boardError,
   } = useGetBoardDetailsQuery(boardId);
+  const nonOwnerMembers = board?.members?.filter(
+    (member) => member.role !== 'owner',
+  );
   const [addMember] = useAddMemberMutation();
   const [updateMember] = useUpdateMemberMutation();
   const [removeMember] = useRemoveMemberMutation();
@@ -53,8 +56,8 @@ const MembersList = () => {
         <button type="submit">Add</button>
       </form>
       <ul>
-        {board.members &&
-          board.members.map((member) => (
+        {nonOwnerMembers &&
+          nonOwnerMembers.map((member) => (
             <li key={member.user._id}>
               Name: {member.user.name} - Role: {member.role}
               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;

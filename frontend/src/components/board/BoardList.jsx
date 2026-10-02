@@ -17,10 +17,18 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     refetch,
     isLoading: isBoardLoading,
   } = useGetBoardDetailsQuery(boardId);
+
   const [deleteList, { isLoading: isLoadingDeleteList }] =
     useDeleteListMutation();
   const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
-  const [cardBody, setCardBody] = useState({ id: null, title: '' });
+  const [cardBody, setCardBody] = useState({
+    id: null,
+    title: '',
+    description: '',
+    dueDate: null,
+    labels: [],
+    assigneeIds: [],
+  });
   const [createCard, { isLoading: isLoadingCreateCard }] =
     useCreateCardMutation();
   const [updateCard, { isLoading: isLoadingUpdateCard }] =
@@ -35,17 +43,27 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
           boardId,
           listId: list._id,
           cardId: cardBody.id,
-          cardTitle: cardBody.title,
+          cardBody: {
+            ...cardBody,
+            assigneeIds: cardBody.assigneeIds?.map((a) => a._id ?? a),
+          },
         }).unwrap();
       } else {
         await createCard({
           boardId,
           listId: list._id,
-          cardTitle: cardBody.title,
+          cardBody,
         }).unwrap();
       }
       setIsUpdate(false);
-      setCardBody({ id: null, title: '' });
+      setCardBody({
+        id: null,
+        title: '',
+        description: '',
+        dueDate: null,
+        labels: [],
+        assigneeIds: [],
+      });
     } catch (error) {
       console.error(error);
     }

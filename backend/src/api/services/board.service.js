@@ -21,9 +21,9 @@ export const getBoardService = async (req) => {
 };
 
 export const getBoardDetailsService = async (boardId, currentUserId) => {
-  // 1. Fetch board and populate member user details (name, email, avatar)
+  // 1. Fetch the board with member details
   const board = await Board.findById(boardId)
-    .populate('members.user', 'name email avatar')
+    .populate('members.user', 'name email avatarUrl')
     .lean();
 
   if (!board) {
@@ -32,55 +32,69 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     throw error;
   }
 
-  // 2. Determine the current user's role for this board
+  // 2. Work out the current user's role
   const isOwner = board.ownerId.toString() === currentUserId.toString();
-  let myRole = 'viewer'; // Default fallback
+  let myRole = 'viewer';
+
   if (isOwner) {
     myRole = 'owner';
   } else {
-    // Find the user in the members array
     const memberEntry = board.members.find(
       (m) => m.user._id.toString() === currentUserId.toString(),
     );
-    if (memberEntry) {
-      myRole = memberEntry.role; // Will be 'editor' or 'viewer'
-    }
+    if (memberEntry) myRole = memberEntry.role; // 'editor' or 'viewer'
   }
 
-  // 3. Fetch lists and cards
+  // 3. Fetch all lists for the board
   const lists = await List.find({ boardId }).sort({ order: 1 }).lean();
 
-  const listsWithCards = await Promise.all(
-    lists.map(async (list) => {
-      const cards = await Card.find({ listId: list._id })
-        .sort({ order: 1 })
-        .lean();
+  // 4. Fetch all cards for those lists in ONE query.
+  //    assigneeIds is populated, so each card gets [{ _id, name, avatarUrl }]
+  const cards = await Card.find({ listId: { $in: lists.map((l) => l._id) } })
+    .sort({ order: 1 })
+    .populate('assigneeIds', 'name avatarUrl')
+    .lean();
 
-      // 4. For each card, fetch its comments (and optionally populate the user who wrote it)
-      const cardsWithComments = await Promise.all(
-        cards.map(async (card) => {
-          const comments = await Comment.find({ cardId: card._id })
-            .sort({ createdAt: 1 }) // Oldest comments first, or -1 for newest first
-            .populate('userId', 'name avatar') // Optional: populate user info if your comment schema has a user reference
-            .lean();
+  // 5. Fetch all comments for those cards in ONE query
+  const comments = await Comment.find({
+    cardId: { $in: cards.map((c) => c._id) },
+  })
+    .sort({ createdAt: 1 })
+    .populate('userId', 'name avatarUrl')
+    .lean();
 
-          return {
-            ...card,
-            comments,
-          };
-        }),
-      );
+  // 6. Group comments by card id
+  const commentsByCard = new Map();
+  for (const comment of comments) {
+    const key = comment.cardId.toString();
+    if (!commentsByCard.has(key)) commentsByCard.set(key, []);
+    commentsByCard.get(key).push(comment);
+  }
 
-      return { ...list, cards: cardsWithComments };
-    }),
-  );
+  // 7. Group cards (with their comments) by list id
+  const cardsByList = new Map();
+  for (const card of cards) {
+    const cardWithComments = {
+      ...card,
+      comments: commentsByCard.get(card._id.toString()) || [],
+    };
+    const key = card.listId.toString();
+    if (!cardsByList.has(key)) cardsByList.set(key, []);
+    cardsByList.get(key).push(cardWithComments);
+  }
 
-  // 5. Return everything, including the populated members and computed role
+  // 8. Attach cards to their lists
+  const listsWithCards = lists.map((list) => ({
+    ...list,
+    cards: cardsByList.get(list._id.toString()) || [],
+  }));
+
+  // 9. Return everything
   return {
     ...board,
     lists: listsWithCards,
-    myRole, // e.g., 'owner', 'editor', or 'viewer'
-    isOwner, // Quick boolean check
+    myRole,
+    isOwner,
     userId: currentUserId,
   };
 };
@@ -91,7 +105,14 @@ export const createBoardService = async (req, { title, description }) => {
     session.startTransaction();
 
     const [board] = await Board.create(
-      [{ title, description, ownerId: req.user._id }],
+      [
+        {
+          title,
+          description,
+          ownerId: req.user._id,
+          members: [{ user: req.user._id, role: 'owner' }],
+        },
+      ],
       { session },
     );
 

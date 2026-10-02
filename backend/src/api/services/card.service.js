@@ -7,27 +7,49 @@ export const getCardsService = async (listId, boardId) => {
   return cards;
 };
 
-export const createCardService = async (title, listId, boardId) => {
+export const createCardService = async (
+  { title, description, dueDate, labels, assigneeIds },
+  listId,
+  boardId,
+) => {
   const lastCard = await Card.findOne({ listId, boardId }).sort({ order: -1 });
 
   // If cards exist, add 1024 to the last order; otherwise start at 1024
   const newOrder = lastCard ? lastCard.order + 1024 : 1024;
 
-  const card = await Card.create({ title, listId, order: newOrder, boardId });
+  const card = await Card.create({
+    title,
+    description,
+    dueDate,
+    labels: [...new Set(labels.map((l) => l.trim()).filter(Boolean))],
+    assigneeIds,
+    listId,
+    order: newOrder,
+    boardId,
+  });
   return card;
 };
 
 export const updateCardService = async ({
   cardId,
   title,
+  description,
+  dueDate,
+  labels,
+  assigneeIds,
   prevOrder,
   nextOrder,
   listId,
 }) => {
   const data = {
     title,
+    description,
+    dueDate,
+    labels: [...new Set(labels.map((l) => l.trim()).filter(Boolean))],
+    assigneeIds,
     listId,
   };
+
   if (prevOrder !== undefined || nextOrder !== undefined) {
     const parsedPrevOrder =
       prevOrder !== null && prevOrder !== undefined ? Number(prevOrder) : null;
@@ -88,7 +110,9 @@ export const updateCardService = async ({
   // --- Apply update ---
   const result = await Card.findByIdAndUpdate(cardId, data, {
     returnDocument: 'after',
-  }).populate('listId', 'title');
+  })
+    .populate('listId', 'title')
+    .populate('assigneeIds', 'name avatarUrl');
 
   if (!result) {
     const error = new Error('Card not found');
