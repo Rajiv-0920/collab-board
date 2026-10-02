@@ -71,14 +71,13 @@ export const updateCardService = async ({
     data.order = newOrder;
   }
 
+  const currentCard = await Card.findById(cardId);
+  if (!currentCard) {
+    const error = new Error('Card not found');
+    error.status = 404;
+    throw error;
+  }
   if (listId) {
-    const currentCard = await Card.findById(cardId);
-    if (!currentCard) {
-      const error = new Error('Card not found');
-      error.status = 404;
-      throw error;
-    }
-
     if (String(currentCard.listId) !== String(listId)) {
       const [currentList, targetList] = await Promise.all([
         List.findById(currentCard.listId),
@@ -108,15 +107,29 @@ export const updateCardService = async ({
   }
 
   // --- Apply update ---
-  const result = await Card.findByIdAndUpdate(cardId, data, {
-    returnDocument: 'after',
-  })
+  const clientVersion = data.version;
+
+  const result = await Card.findByIdAndUpdate(
+    { _id: cardId, version: clientVersion },
+    {
+      $set: data,
+      $inc: {
+        version: 1,
+      },
+    },
+    {
+      returnDocument: 'after',
+    },
+  )
     .populate('listId', 'title')
     .populate('assigneeIds', 'name avatarUrl');
 
   if (!result) {
-    const error = new Error('Card not found');
-    error.status = 404;
+    const error = new Error(
+      'Card was modified by another user. Please refresh and try again.',
+    );
+
+    error.status = 409;
     throw error;
   }
 

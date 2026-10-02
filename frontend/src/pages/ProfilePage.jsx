@@ -27,9 +27,6 @@ const ProfilePage = () => {
       if (avatarFile) {
         formData.append('avatarUrl', avatarFile);
       }
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value);
-      }
 
       await updateMe(formData).unwrap();
 
