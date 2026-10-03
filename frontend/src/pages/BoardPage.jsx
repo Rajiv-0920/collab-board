@@ -42,7 +42,13 @@ const BoardPage = () => {
 
   useEffect(() => {
     socket.connect();
-    socket.emit('joinBoard', boardId);
+    socket.emit('joinBoard', boardId, (response) => {
+      if (!response.success) {
+        setErrorMsg(response.message);
+        navigate('/');
+      }
+      console.log('Join board as', response.role);
+    });
 
     socket.on('board:updated', (updatedBoard) => {
       dispatch(
@@ -219,6 +225,7 @@ const BoardPage = () => {
       socket.off('comment:deleted');
       socket.off('board:member:updated');
       socket.off('board:member:deleted');
+      socket.emit('leaveBoard', boardId);
       socket.disconnect();
     };
   }, [boardId]);

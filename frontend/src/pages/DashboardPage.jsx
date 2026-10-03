@@ -35,12 +35,15 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!socket.connected) {
       socket.connect();
-      socket.emit('registerUser', currentUser._id);
     }
 
     if (boards && boards.length > 0) {
       boards.forEach((board) => {
-        socket.emit('joinBoard', board._id);
+        socket.emit('joinBoard', board._id, (response) => {
+          if (!response.success) {
+            console.log('Error', response.message);
+          }
+        });
       });
     }
 
