@@ -36,20 +36,10 @@ io.use((socket, next) => {
 io.on('connection', (socket) => {
   console.log('+ User connected:', socket.id);
   console.log('+ Authenticated user:', socket.userId);
-
+  console.log('Transport:', socket.conn.transport.name);
   // Personal room
-  socket.join(`user:${socket.userId}`);
+  socket.join(socket.userId);
 
-  // socket.on('registerUser', (userId) => {
-  //   console.log(`+ User ${socket.id} registered as ${userId}`);
-  //   socket.join(userId);
-  // });
-
-  // socket.on('joinBoard', (boardId) => {
-  //   socket.join(boardId);
-  //   console.log(`+ User ${socket.id} joined board ${boardId}`);
-  // });
-  //
   socket.on('joinBoard', async (boardId, callback) => {
     try {
       const member = await BoardMember.findOne({

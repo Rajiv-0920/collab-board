@@ -74,6 +74,9 @@ const DashboardPage = () => {
     return () => {
       socket.off('board:updated');
       socket.off('board:member:invited');
+      boards?.forEach((board) => {
+        socket.emit('leaveBoard', board._id);
+      });
       socket.disconnect();
     };
   }, [boards, currentUser, dispatch]);
