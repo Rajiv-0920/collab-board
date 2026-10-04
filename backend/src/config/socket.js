@@ -34,9 +34,8 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('+ User connected:', socket.id);
-  console.log('+ Authenticated user:', socket.userId);
-  console.log('Transport:', socket.conn.transport.name);
+  // console.log('+ User connected:', socket.id);
+  // console.log('+ Authenticated user:', socket.userId);
   // Personal room
   socket.join(socket.userId);
 
@@ -56,7 +55,7 @@ io.on('connection', (socket) => {
 
       socket.join(boardId);
 
-      console.log(`+ User ${socket.userId} joined board ${boardId}`);
+      // console.log(`+ User ${socket.userId} joined board ${boardId}`);
 
       callback?.({
         success: true,
@@ -75,11 +74,11 @@ io.on('connection', (socket) => {
   socket.on('leaveBoard', (boardId) => {
     socket.leave(boardId);
 
-    console.log(`- User ${socket.userId} left board ${boardId}`);
+    // console.log(`- User ${socket.userId} left board ${boardId}`);
   });
 
   socket.on('disconnect', () => {
-    console.log('- User disconnected:', socket.id, socket.userId);
+    // console.log('- User disconnected:', socket.id, socket.userId);
   });
 });
 

@@ -76,8 +76,8 @@ const CardForm = ({
           value={cardBody.assigneeIds || []} // 3. Value must be an array
         >
           {board?.members?.map((member) => (
-            <option key={member.user._id} value={member.user._id}>
-              {member.user.name}
+            <option key={member.userId._id} value={member.userId._id}>
+              {member.userId.name}
             </option>
           ))}
         </select>

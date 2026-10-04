@@ -149,11 +149,31 @@ const BoardPage = () => {
       );
     });
 
+    socket.on('board:member:inviteAccepted', (member) => {
+      dispatch(
+        boardsApi.util.updateQueryData(
+          'getBoardDetails',
+          member.boardId,
+          (draft) => {
+            const alreadyExists = draft.members.some(
+              (existingMember) =>
+                existingMember.userId?._id?.toString() ===
+                member.userId?._id?.toString(),
+            );
+
+            if (!alreadyExists) {
+              draft.members.push(member);
+            }
+          },
+        ),
+      );
+    });
+
     socket.on('board:member:updated', (updatedMember) => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
           const member = draft.members.find(
-            (m) => m.user._id === updatedMember.userId,
+            (m) => m.userId._id === updatedMember.userId,
           );
           if (member) {
             member.role = updatedMember.role;
@@ -207,7 +227,9 @@ const BoardPage = () => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
           if (draft && draft.members) {
-            draft.members = draft.members.filter((m) => m.user._id !== userId);
+            draft.members = draft.members.filter(
+              (m) => m.userId._id !== userId,
+            );
           }
         }),
       );
@@ -223,6 +245,7 @@ const BoardPage = () => {
       socket.off('card:updated');
       socket.off('comment:created');
       socket.off('comment:deleted');
+      socket.off('board:member:inviteAccepted');
       socket.off('board:member:updated');
       socket.off('board:member:deleted');
       socket.emit('leaveBoard', boardId);

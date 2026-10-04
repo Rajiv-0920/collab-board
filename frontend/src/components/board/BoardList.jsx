@@ -20,6 +20,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
 
   const [deleteList, { isLoading: isLoadingDeleteList }] =
     useDeleteListMutation();
+
   const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
   const [cardBody, setCardBody] = useState({
     id: null,

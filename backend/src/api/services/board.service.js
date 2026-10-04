@@ -6,6 +6,7 @@ import Card from '../models/card.model.js';
 import User from '../models/user.model.js';
 import Comment from '../models/comment.model.js';
 import Activity from '../models/activity.model.js';
+import InviteBoard from '../models/inviteBoard.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
@@ -20,11 +21,8 @@ export const getBoardService = async (req) => {
   return board;
 };
 
-export const getBoardDetailsService = async (boardId, currentUserId) => {
-  // 1. Fetch the board with member details
-  const board = await Board.findById(boardId)
-    .populate('members.user', 'name email avatarUrl')
-    .lean();
+export const getBoardDetailsService = async (req, boardId, currentUserId) => {
+  const board = await Board.findById(boardId).lean();
 
   if (!board) {
     const error = new Error('Board not found');
@@ -32,18 +30,14 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     throw error;
   }
 
-  // 2. Work out the current user's role
-  const isOwner = board.ownerId.toString() === currentUserId.toString();
-  let myRole = 'viewer';
+  board.members = await BoardMember.find({
+    boardId: boardId,
+  })
+    .populate('userId', 'name email avatarUrl')
+    .lean();
 
-  if (isOwner) {
-    myRole = 'owner';
-  } else {
-    const memberEntry = board.members.find(
-      (m) => m.user._id.toString() === currentUserId.toString(),
-    );
-    if (memberEntry) myRole = memberEntry.role; // 'editor' or 'viewer'
-  }
+  // Work out the current user's role
+  const myRole = req.boardRole;
 
   // 3. Fetch all lists for the board
   const lists = await List.find({ boardId }).sort({ order: 1 }).lean();
@@ -94,7 +88,7 @@ export const getBoardDetailsService = async (boardId, currentUserId) => {
     ...board,
     lists: listsWithCards,
     myRole,
-    isOwner,
+    isOwner: myRole === 'owner',
     userId: currentUserId,
   };
 };
@@ -110,7 +104,7 @@ export const createBoardService = async (req, { title, description }) => {
           title,
           description,
           ownerId: req.user._id,
-          members: [{ user: req.user._id, role: 'owner' }],
+          members: [{ userId: req.user._id, role: 'owner' }],
         },
       ],
       { session },
@@ -208,7 +202,10 @@ export const deleteBoardService = async (boardId) => {
 };
 
 export const inviteMemberToBoardService = async (req, boardId, email, role) => {
-  const board = await Board.findById(boardId);
+  const board = await Board.findOne({
+    _id: new mongoose.Types.ObjectId(boardId),
+    ownerId: req.user._id,
+  });
   const user = await User.findOne({ email });
   if (!board) {
     const error = new Error('Board not found');
@@ -220,11 +217,36 @@ export const inviteMemberToBoardService = async (req, boardId, email, role) => {
     error.statusCode = 404;
     throw error;
   }
-  await BoardMember.create([{ boardId, userId: user._id, role }]);
-  await Board.findByIdAndUpdate(boardId, {
-    $push: { members: { user, role } },
+  const alreadyMember = await BoardMember.findOne({
+    boardId,
+    userId: user._id,
   });
-  return user;
+  if (alreadyMember) {
+    const error = new Error('User is already a member of this board');
+    error.statusCode = 400;
+    throw error;
+  }
+  const alreadyInvited = await InviteBoard.findOne({
+    boardId,
+    inviteeId: user._id,
+    status: 'pending',
+  });
+  if (alreadyInvited) {
+    const error = new Error('User is already invited to this board');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const invite = await InviteBoard.create({
+    boardId,
+    inviteeId: user._id,
+    invitedBy: req.user._id,
+    status: 'pending',
+    role,
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+  await invite.populate('inviteeId');
+  return invite;
 };
 
 export const updateBoardMemberService = async (boardId, userId, role) => {
