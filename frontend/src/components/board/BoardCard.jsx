@@ -84,6 +84,7 @@ const BoardCard = ({
       description: card.description,
       dueDate: card.dueDate,
       labels: card.labels,
+      version: card.version,
       assigneeIds: card.assigneeIds,
     });
   };

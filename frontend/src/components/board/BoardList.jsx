@@ -29,6 +29,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     dueDate: null,
     labels: [],
     assigneeIds: [],
+    version: 0,
   });
   const [createCard, { isLoading: isLoadingCreateCard }] =
     useCreateCardMutation();
@@ -40,7 +41,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
     e.preventDefault();
     try {
       if (isUpdate) {
-        await updateCard({
+        const result = await updateCard({
           boardId,
           listId: list._id,
           cardId: cardBody.id,
@@ -63,6 +64,7 @@ const BoardList = ({ list, handleUpdateList, listIndex, updateList }) => {
         description: '',
         dueDate: null,
         labels: [],
+        version: 0,
         assigneeIds: [],
       });
     } catch (error) {

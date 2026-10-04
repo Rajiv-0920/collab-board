@@ -53,9 +53,9 @@ export const updateCard = async (req, res, next) => {
       assigneeIds,
       prevOrder,
       nextOrder,
+      version,
       listId,
     } = req.body;
-
     const result = await cardService.updateCardService({
       title,
       description,
@@ -64,6 +64,7 @@ export const updateCard = async (req, res, next) => {
       assigneeIds,
       prevOrder,
       nextOrder,
+      version,
       listId,
       cardId,
     });

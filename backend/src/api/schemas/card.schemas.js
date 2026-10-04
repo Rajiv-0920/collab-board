@@ -25,6 +25,7 @@ export const updateCardSchema = z.object({
     assigneeIds: z.array(z.string()).optional(),
     prevOrder: z.number().optional().nullable(),
     nextOrder: z.number().optional().nullable(),
+    version: z.number().optional(),
     listId: z.string().optional(),
   }),
 });

@@ -41,6 +41,7 @@ export const updateCardService = async ({
   assigneeIds,
   prevOrder,
   nextOrder,
+  version: clientVersion,
   listId,
 }) => {
   const data = {
@@ -109,10 +110,11 @@ export const updateCardService = async ({
   }
 
   // --- Apply update ---
-  const clientVersion = data.version;
-
-  const result = await Card.findByIdAndUpdate(
-    { _id: cardId, version: clientVersion },
+  const result = await Card.findOneAndUpdate(
+    {
+      _id: cardId,
+      version: clientVersion,
+    },
     {
       $set: data,
       $inc: {
@@ -121,6 +123,7 @@ export const updateCardService = async ({
     },
     {
       returnDocument: 'after',
+      runValidators: true,
     },
   )
     .populate('listId', 'title')
@@ -131,7 +134,7 @@ export const updateCardService = async ({
       'Card was modified by another user. Please refresh and try again.',
     );
 
-    error.status = 409;
+    error.statusCode = 409;
     throw error;
   }
 

@@ -21,6 +21,7 @@ export const cardApi = baseApi.injectEndpoints({
           dueDate: cardBody.dueDate,
           labels: cardBody.labels,
           assigneeIds: cardBody.assigneeIds,
+          version: cardBody.version,
           prevOrder: cardBody.prevOrder,
           nextOrder: cardBody.nextOrder,
           ...(newListId && { listId: newListId }),

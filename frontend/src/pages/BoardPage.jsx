@@ -353,7 +353,7 @@ const BoardPage = () => {
       const nextCard = destCards[destination.index + 1] ?? null;
 
       const isCrossList = source.droppableId !== destination.droppableId;
-
+      console.log(moved.version);
       try {
         await updateCard({
           boardId,
@@ -365,6 +365,7 @@ const BoardPage = () => {
             labels: moved.labels,
             assigneeIds: moved.assigneeIds?.map((a) => a._id ?? a),
             dueDate: moved.dueDate ?? undefined,
+            version: moved.version,
             prevOrder: prevCard ? prevCard.order : null,
             nextOrder: nextCard ? nextCard.order : null,
           },
