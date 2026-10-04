@@ -6,7 +6,6 @@ import { socket } from '../../services/socket';
 const BoardActivity = () => {
   const { boardId } = useParams();
   const { data: activityData, refetch } = useGetBoardActivityQuery(boardId);
-  console.log(activityData);
 
   useEffect(() => {
     socket.connect();

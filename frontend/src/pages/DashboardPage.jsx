@@ -11,6 +11,13 @@ import { selectCurrentUser } from '../store/authSlice';
 import { socket } from '../services/socket';
 import { useDispatch } from 'react-redux';
 import { boardsApi } from '../services/boardsApi';
+import {
+  useGetInvitesQuery,
+  useAcceptInviteMutation,
+  useDeclineInviteMutation,
+} from '../services/inviteApi';
+import { inviteApi } from '../services/inviteApi';
+import InvitationCard from '../components/dashbaord/InvitationCard';
 
 const DashboardPage = () => {
   const [boardBody, setBoardBody] = useState({
@@ -28,6 +35,10 @@ const DashboardPage = () => {
     useCreateBoardMutation();
   const [updateBoard, { isLoading: isUpdating }] = useUpdateBoardMutation();
   const [deleteBoard, { isLoading: isDeleting }] = useDeleteBoardMutation();
+  const { data: invites, isLoading: isInvitesLoading } = useGetInvitesQuery();
+  const [acceptInvite] = useAcceptInviteMutation();
+  const [declineInvite] = useDeclineInviteMutation();
+
   const [isUpdate, setIsUpdate] = useState(false);
   const isLoading = isCreating || isUpdating;
   const currentUser = useSelector(selectCurrentUser);
@@ -35,12 +46,15 @@ const DashboardPage = () => {
   useEffect(() => {
     if (!socket.connected) {
       socket.connect();
-      socket.emit('registerUser', currentUser._id);
     }
 
     if (boards && boards.length > 0) {
       boards.forEach((board) => {
-        socket.emit('joinBoard', board._id);
+        socket.emit('joinBoard', board._id, (response) => {
+          if (!response.success) {
+            console.log('Error', response.message);
+          }
+        });
       });
     }
 
@@ -56,8 +70,18 @@ const DashboardPage = () => {
       );
     });
 
+    socket.on('board:deleted', (data) => {
+      dispatch(boardsApi.util.invalidateTags(['Boards']));
+    });
+
     socket.on('board:member:invited', (data) => {
       if (currentUser && data.email === currentUser.email) {
+        dispatch(inviteApi.util.invalidateTags(['Invites']));
+      }
+    });
+
+    socket.on('board:member:inviteAccepted', (data) => {
+      if (currentUser && data.inviteeId === currentUser._id) {
         dispatch(boardsApi.util.invalidateTags(['Boards']));
       }
     });
@@ -70,7 +94,12 @@ const DashboardPage = () => {
 
     return () => {
       socket.off('board:updated');
+      socket.off('board:deleted');
       socket.off('board:member:invited');
+      socket.off('board:member:inviteAccepted');
+      boards?.forEach((board) => {
+        socket.emit('leaveBoard', board._id);
+      });
       socket.disconnect();
     };
   }, [boards, currentUser, dispatch]);
@@ -101,6 +130,23 @@ const DashboardPage = () => {
       title: body.title,
       description: body.description,
     });
+  };
+
+  const onAccept = async (inviteId) => {
+    try {
+      await acceptInvite(inviteId);
+      refetch();
+    } catch (err) {
+      console.error('Accept invite failed:', err);
+    }
+  };
+
+  const onDecline = async (inviteId) => {
+    try {
+      await declineInvite(inviteId);
+    } catch (err) {
+      console.error('Decline invite failed:', err);
+    }
   };
 
   return (
@@ -154,6 +200,19 @@ const DashboardPage = () => {
                 </li>
               );
             })}
+          </ul>
+        ) : null}
+        {invites && invites.length > 0 ? (
+          <ul style={{ listStyleType: 'none', padding: 0 }}>
+            {invites.map((invite) => (
+              <li key={invite._id}>
+                <InvitationCard
+                  invitation={invite}
+                  onAccept={onAccept}
+                  onDecline={onDecline}
+                />
+              </li>
+            ))}
           </ul>
         ) : null}
       </div>

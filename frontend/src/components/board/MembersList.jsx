@@ -15,7 +15,14 @@ const MembersList = () => {
     isLoading: isBoardLoading,
     error: boardError,
   } = useGetBoardDetailsQuery(boardId);
-  const [addMember] = useAddMemberMutation();
+  const nonOwnerMembers = board?.members?.filter(
+    (member) => member.role !== 'owner',
+  );
+
+  const [
+    addMember,
+    { isLoading: isLoadingAddMember, isSuccess: isSuccessAddMember },
+  ] = useAddMemberMutation();
   const [updateMember] = useUpdateMemberMutation();
   const [removeMember] = useRemoveMemberMutation();
 
@@ -52,15 +59,16 @@ const MembersList = () => {
         &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
         <button type="submit">Add</button>
       </form>
+      {isSuccessAddMember && <p>Member invited successfully!</p>}
       <ul>
-        {board.members &&
-          board.members.map((member) => (
-            <li key={member.user._id}>
-              Name: {member.user.name} - Role: {member.role}
+        {nonOwnerMembers &&
+          nonOwnerMembers.map((member) => (
+            <li key={member.userId._id}>
+              Name: {member.userId.name} - Role: {member.role}
               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
               <select
                 value={member.role}
-                onChange={(e) => handleRoleChange(e, member.user._id)}
+                onChange={(e) => handleRoleChange(e, member.userId._id)}
               >
                 <option value="editor">editor</option>
                 <option value="viewer">viewer</option>
@@ -68,7 +76,7 @@ const MembersList = () => {
               &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
               <button
                 onClick={() =>
-                  removeMember({ boardId, memberId: member.user._id })
+                  removeMember({ boardId, memberId: member.userId._id })
                 }
               >
                 Remove

@@ -6,75 +6,89 @@ import Card from '../models/card.model.js';
 import User from '../models/user.model.js';
 import Comment from '../models/comment.model.js';
 import Activity from '../models/activity.model.js';
+import InviteBoard from '../models/inviteBoard.model.js';
 
 export const getBoardService = async (req) => {
   const boardMember = await BoardMember.find({ userId: req.user._id });
-  if (!boardMember) throw new Error('Board member not found');
+  if (!boardMember) {
+    const error = new Error('Board member not found');
+    error.status = 404;
+    throw error;
+  }
   const board = await Board.find({
     _id: { $in: boardMember.map((m) => m.boardId) },
   });
   return board;
 };
 
-export const getBoardDetailsService = async (boardId, currentUserId) => {
-  // 1. Fetch board and populate member user details (name, email, avatar)
-  const board = await Board.findById(boardId)
-    .populate('members.user', 'name email avatar')
-    .lean();
+export const getBoardDetailsService = async (req, boardId, currentUserId) => {
+  const board = await Board.findById(boardId).lean();
 
   if (!board) {
-    throw new Error('Board not found');
+    const error = new Error('Board not found');
+    error.status = 404;
+    throw error;
   }
 
-  // 2. Determine the current user's role for this board
-  const isOwner = board.ownerId.toString() === currentUserId.toString();
-  let myRole = 'viewer'; // Default fallback
-  if (isOwner) {
-    myRole = 'owner';
-  } else {
-    // Find the user in the members array
-    const memberEntry = board.members.find(
-      (m) => m.user._id.toString() === currentUserId.toString(),
-    );
-    if (memberEntry) {
-      myRole = memberEntry.role; // Will be 'editor' or 'viewer'
-    }
-  }
+  board.members = await BoardMember.find({
+    boardId: boardId,
+  })
+    .populate('userId', 'name email avatarUrl')
+    .lean();
 
-  // 3. Fetch lists and cards
+  // Work out the current user's role
+  const myRole = req.boardRole;
+
+  // 3. Fetch all lists for the board
   const lists = await List.find({ boardId }).sort({ order: 1 }).lean();
 
-  const listsWithCards = await Promise.all(
-    lists.map(async (list) => {
-      const cards = await Card.find({ listId: list._id })
-        .sort({ order: 1 })
-        .lean();
+  // 4. Fetch all cards for those lists in ONE query.
+  //    assigneeIds is populated, so each card gets [{ _id, name, avatarUrl }]
+  const cards = await Card.find({ listId: { $in: lists.map((l) => l._id) } })
+    .sort({ order: 1 })
+    .populate('assigneeIds', 'name avatarUrl')
+    .lean();
 
-      // 4. For each card, fetch its comments (and optionally populate the user who wrote it)
-      const cardsWithComments = await Promise.all(
-        cards.map(async (card) => {
-          const comments = await Comment.find({ cardId: card._id })
-            .sort({ createdAt: 1 }) // Oldest comments first, or -1 for newest first
-            .populate('userId', 'name avatar') // Optional: populate user info if your comment schema has a user reference
-            .lean();
+  // 5. Fetch all comments for those cards in ONE query
+  const comments = await Comment.find({
+    cardId: { $in: cards.map((c) => c._id) },
+  })
+    .sort({ createdAt: 1 })
+    .populate('userId', 'name avatarUrl')
+    .lean();
 
-          return {
-            ...card,
-            comments,
-          };
-        }),
-      );
+  // 6. Group comments by card id
+  const commentsByCard = new Map();
+  for (const comment of comments) {
+    const key = comment.cardId.toString();
+    if (!commentsByCard.has(key)) commentsByCard.set(key, []);
+    commentsByCard.get(key).push(comment);
+  }
 
-      return { ...list, cards: cardsWithComments };
-    }),
-  );
+  // 7. Group cards (with their comments) by list id
+  const cardsByList = new Map();
+  for (const card of cards) {
+    const cardWithComments = {
+      ...card,
+      comments: commentsByCard.get(card._id.toString()) || [],
+    };
+    const key = card.listId.toString();
+    if (!cardsByList.has(key)) cardsByList.set(key, []);
+    cardsByList.get(key).push(cardWithComments);
+  }
 
-  // 5. Return everything, including the populated members and computed role
+  // 8. Attach cards to their lists
+  const listsWithCards = lists.map((list) => ({
+    ...list,
+    cards: cardsByList.get(list._id.toString()) || [],
+  }));
+
+  // 9. Return everything
   return {
     ...board,
     lists: listsWithCards,
-    myRole, // e.g., 'owner', 'editor', or 'viewer'
-    isOwner, // Quick boolean check
+    myRole,
+    isOwner: myRole === 'owner',
     userId: currentUserId,
   };
 };
@@ -85,7 +99,14 @@ export const createBoardService = async (req, { title, description }) => {
     session.startTransaction();
 
     const [board] = await Board.create(
-      [{ title, description, ownerId: req.user._id }],
+      [
+        {
+          title,
+          description,
+          ownerId: req.user._id,
+          members: [{ userId: req.user._id, role: 'owner' }],
+        },
+      ],
       { session },
     );
 
@@ -109,9 +130,12 @@ export const getBoardByIdService = async (boardId) => {
   return board;
 };
 
-export const getBoardActivityService = async (queryCriteria) => {
-  const { boardId, status, page = 1, limit = 10 } = queryCriteria;
-
+export const getBoardActivityService = async ({
+  boardId,
+  status,
+  page,
+  limit,
+}) => {
   const filter = {};
   if (boardId) filter.boardId = boardId;
   if (status) filter.status = status;
@@ -159,25 +183,59 @@ export const updateBoardService = async (boardId, data) => {
 
 export const deleteBoardService = async (boardId) => {
   const session = await mongoose.startSession();
+
   try {
-    session.startTransaction();
+    let cardIds = [];
 
-    await Board.findByIdAndDelete(boardId, { session });
-    await BoardMember.deleteMany({ boardId }, { session });
-    await List.deleteMany({ boardId }, { session });
-    await Card.deleteMany({ boardId }, { session });
+    await session.withTransaction(async () => {
+      const board = await Board.findById(boardId).session(session);
 
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
+      if (!board) {
+        const error = new Error('Board not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const cards = await Card.find({
+        boardId,
+      })
+        .select('_id')
+        .session(session)
+        .lean();
+
+      cardIds = cards.map((card) => card._id);
+
+      if (cardIds.length > 0) {
+        await Comment.deleteMany(
+          {
+            cardId: { $in: cardIds },
+          },
+          { session },
+        );
+      }
+
+      await Activity.deleteMany({ boardId }, { session });
+
+      await Card.deleteMany({ boardId }, { session });
+
+      await List.deleteMany({ boardId }, { session });
+
+      await BoardMember.deleteMany({ boardId }, { session });
+
+      await InviteBoard.deleteMany({ boardId }, { session });
+
+      await Board.deleteOne({ _id: boardId }, { session });
+    });
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 
 export const inviteMemberToBoardService = async (req, boardId, email, role) => {
-  const board = await Board.findById(boardId);
+  const board = await Board.findOne({
+    _id: new mongoose.Types.ObjectId(boardId),
+    ownerId: req.user._id,
+  });
   const user = await User.findOne({ email });
   if (!board) {
     const error = new Error('Board not found');
@@ -189,11 +247,36 @@ export const inviteMemberToBoardService = async (req, boardId, email, role) => {
     error.statusCode = 404;
     throw error;
   }
-  await BoardMember.create([{ boardId, userId: user._id, role }]);
-  await Board.findByIdAndUpdate(boardId, {
-    $push: { members: { user, role } },
+  const alreadyMember = await BoardMember.findOne({
+    boardId,
+    userId: user._id,
   });
-  return user;
+  if (alreadyMember) {
+    const error = new Error('User is already a member of this board');
+    error.statusCode = 400;
+    throw error;
+  }
+  const alreadyInvited = await InviteBoard.findOne({
+    boardId,
+    inviteeId: user._id,
+    status: 'pending',
+  });
+  if (alreadyInvited) {
+    const error = new Error('User is already invited to this board');
+    error.statusCode = 400;
+    throw error;
+  }
+
+  const invite = await InviteBoard.create({
+    boardId,
+    inviteeId: user._id,
+    invitedBy: req.user._id,
+    status: 'pending',
+    role,
+    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  });
+  await invite.populate('inviteeId');
+  return invite;
 };
 
 export const updateBoardMemberService = async (boardId, userId, role) => {

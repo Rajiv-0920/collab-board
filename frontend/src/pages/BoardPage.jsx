@@ -42,7 +42,13 @@ const BoardPage = () => {
 
   useEffect(() => {
     socket.connect();
-    socket.emit('joinBoard', boardId);
+    socket.emit('joinBoard', boardId, (response) => {
+      if (!response.success) {
+        setErrorMsg(response.message);
+        navigate('/');
+      }
+      console.log('Join board as', response.role);
+    });
 
     socket.on('board:updated', (updatedBoard) => {
       dispatch(
@@ -51,6 +57,16 @@ const BoardPage = () => {
           draft.description = updatedBoard.description;
         }),
       );
+    });
+
+    socket.on('board:deleted', (data) => {
+      if (data.boardId !== boardId) {
+        return;
+      }
+
+      dispatch(boardsApi.util.invalidateTags(['Boards']));
+
+      navigate('/dashboard');
     });
 
     socket.on('list:created', (newList) => {
@@ -143,11 +159,31 @@ const BoardPage = () => {
       );
     });
 
+    socket.on('board:member:inviteAccepted', (member) => {
+      dispatch(
+        boardsApi.util.updateQueryData(
+          'getBoardDetails',
+          member.boardId,
+          (draft) => {
+            const alreadyExists = draft.members.some(
+              (existingMember) =>
+                existingMember.userId?._id?.toString() ===
+                member.userId?._id?.toString(),
+            );
+
+            if (!alreadyExists) {
+              draft.members.push(member);
+            }
+          },
+        ),
+      );
+    });
+
     socket.on('board:member:updated', (updatedMember) => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
           const member = draft.members.find(
-            (m) => m.user._id === updatedMember.userId,
+            (m) => m.userId._id === updatedMember.userId,
           );
           if (member) {
             member.role = updatedMember.role;
@@ -201,7 +237,9 @@ const BoardPage = () => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
           if (draft && draft.members) {
-            draft.members = draft.members.filter((m) => m.user._id !== userId);
+            draft.members = draft.members.filter(
+              (m) => m.userId._id !== userId,
+            );
           }
         }),
       );
@@ -209,6 +247,7 @@ const BoardPage = () => {
 
     return () => {
       socket.off('board:updated');
+      socket.off('board:deleted');
       socket.off('list:created');
       socket.off('list:updated');
       socket.off('list:deleted');
@@ -217,8 +256,10 @@ const BoardPage = () => {
       socket.off('card:updated');
       socket.off('comment:created');
       socket.off('comment:deleted');
+      socket.off('board:member:inviteAccepted');
       socket.off('board:member:updated');
       socket.off('board:member:deleted');
+      socket.emit('leaveBoard', boardId);
       socket.disconnect();
     };
   }, [boardId]);
@@ -312,15 +353,22 @@ const BoardPage = () => {
       const nextCard = destCards[destination.index + 1] ?? null;
 
       const isCrossList = source.droppableId !== destination.droppableId;
-
+      console.log(moved.version);
       try {
         await updateCard({
           boardId,
-          listId: source.droppableId, // old list (URL)
           cardId: moved._id,
-          cardTitle: moved.title,
-          prevOrder: prevCard ? prevCard.order : null,
-          nextOrder: nextCard ? nextCard.order : null,
+          listId: source.droppableId,
+          cardBody: {
+            title: moved.title,
+            description: moved.description ?? undefined,
+            labels: moved.labels,
+            assigneeIds: moved.assigneeIds?.map((a) => a._id ?? a),
+            dueDate: moved.dueDate ?? undefined,
+            version: moved.version,
+            prevOrder: prevCard ? prevCard.order : null,
+            nextOrder: nextCard ? nextCard.order : null,
+          },
           newListId: isCrossList ? destination.droppableId : undefined,
         }).unwrap();
       } catch (err) {
