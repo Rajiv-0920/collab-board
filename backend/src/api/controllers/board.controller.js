@@ -107,7 +107,11 @@ export const updateBoard = async (req, res, next) => {
 
 export const deleteBoard = async (req, res, next) => {
   try {
-    await boardService.deleteBoardService(req.params.boardId);
+    const { boardId } = req.params;
+    await boardService.deleteBoardService(boardId);
+    io.to(boardId.toString()).emit('board:deleted', {
+      boardId: boardId.toString(),
+    });
     return sendResponse(res, 200, true, 'Board deleted successfully');
   } catch (error) {
     next(error);

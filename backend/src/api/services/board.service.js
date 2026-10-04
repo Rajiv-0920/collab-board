@@ -183,21 +183,51 @@ export const updateBoardService = async (boardId, data) => {
 
 export const deleteBoardService = async (boardId) => {
   const session = await mongoose.startSession();
+
   try {
-    session.startTransaction();
+    let cardIds = [];
 
-    await Board.findByIdAndDelete(boardId, { session });
-    await BoardMember.deleteMany({ boardId }, { session });
-    await List.deleteMany({ boardId }, { session });
-    await Card.deleteMany({ boardId }, { session });
-    await Activity.deleteMany({ boardId }, { session });
+    await session.withTransaction(async () => {
+      const board = await Board.findById(boardId).session(session);
 
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
+      if (!board) {
+        const error = new Error('Board not found');
+        error.status = 404;
+        throw error;
+      }
+
+      const cards = await Card.find({
+        boardId,
+      })
+        .select('_id')
+        .session(session)
+        .lean();
+
+      cardIds = cards.map((card) => card._id);
+
+      if (cardIds.length > 0) {
+        await Comment.deleteMany(
+          {
+            cardId: { $in: cardIds },
+          },
+          { session },
+        );
+      }
+
+      await Activity.deleteMany({ boardId }, { session });
+
+      await Card.deleteMany({ boardId }, { session });
+
+      await List.deleteMany({ boardId }, { session });
+
+      await BoardMember.deleteMany({ boardId }, { session });
+
+      await InviteBoard.deleteMany({ boardId }, { session });
+
+      await Board.deleteOne({ _id: boardId }, { session });
+    });
   } finally {
-    session.endSession();
+    await session.endSession();
   }
 };
 

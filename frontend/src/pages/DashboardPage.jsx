@@ -70,6 +70,10 @@ const DashboardPage = () => {
       );
     });
 
+    socket.on('board:deleted', (data) => {
+      dispatch(boardsApi.util.invalidateTags(['Boards']));
+    });
+
     socket.on('board:member:invited', (data) => {
       if (currentUser && data.email === currentUser.email) {
         dispatch(inviteApi.util.invalidateTags(['Invites']));
@@ -90,6 +94,7 @@ const DashboardPage = () => {
 
     return () => {
       socket.off('board:updated');
+      socket.off('board:deleted');
       socket.off('board:member:invited');
       socket.off('board:member:inviteAccepted');
       boards?.forEach((board) => {

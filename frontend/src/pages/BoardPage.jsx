@@ -59,6 +59,16 @@ const BoardPage = () => {
       );
     });
 
+    socket.on('board:deleted', (data) => {
+      if (data.boardId !== boardId) {
+        return;
+      }
+
+      dispatch(boardsApi.util.invalidateTags(['Boards']));
+
+      navigate('/dashboard');
+    });
+
     socket.on('list:created', (newList) => {
       dispatch(
         boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
@@ -237,6 +247,7 @@ const BoardPage = () => {
 
     return () => {
       socket.off('board:updated');
+      socket.off('board:deleted');
       socket.off('list:created');
       socket.off('list:updated');
       socket.off('list:deleted');

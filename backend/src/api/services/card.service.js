@@ -27,6 +27,8 @@ export const createCardService = async (
     order: newOrder,
     boardId,
   });
+
+  await card.populate('assigneeIds', 'name avatarUrl');
   return card;
 };
 
