@@ -43,14 +43,18 @@ export const loginUser = async (res, { email, password, rememberMe }) => {
   const user = await User.findOne({ email }).select('+passwordHash');
 
   if (!user) {
-    const error = new Error('Please enter valid credentials.');
+    const error = new Error(
+      'Unable to Sign In. Please check your credentials and try again.',
+    );
     error.statusCode = 401;
     throw error;
   }
 
   const isPasswordMatch = await user.matchPassword(password);
   if (!isPasswordMatch) {
-    const error = new Error('Please enter valid credentials.');
+    const error = new Error(
+      'Unable to Sign In. Please check your credentials and try again.',
+    );
     error.statusCode = 401;
     throw error;
   }

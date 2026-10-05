@@ -4,8 +4,9 @@ import { useLoginMutation } from '../services/authApi';
 import { selectCurrentUser, setCredentials } from '../store/authSlice';
 import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
+import LoginForm from '../components/auth/LoginForm';
 
-const LoginPage = () => {
+const Login = () => {
   const [user, setUser] = useState({ name: '', email: '', password: '' });
   const [login, { isLoading, isError }] = useLoginMutation();
   const dispatch = useDispatch();
@@ -26,33 +27,10 @@ const LoginPage = () => {
 
   return (
     <div>
-      {!currentUser && (
-        <>
-          <h2>Login Form</h2>
-          <form onSubmit={handleSubmit}>
-            <input
-              type="email"
-              name="email"
-              onChange={(e) => setUser({ ...user, email: e.target.value })}
-            />
-            <input
-              type="password"
-              name="password"
-              onChange={(e) => setUser({ ...user, password: e.target.value })}
-            />
-            <button type="submit" disabled={isLoading}>
-              Login
-            </button>
-          </form>
-        </>
-      )}
+      {!currentUser && <LoginForm />}
       {isError && <p>Login failed.</p>}
-      <p>
-        New <Link to="/auth/register">register</Link>
-      </p>
-      <Button>Hello</Button>
     </div>
   );
 };
 
-export default LoginPage;
+export default Login;

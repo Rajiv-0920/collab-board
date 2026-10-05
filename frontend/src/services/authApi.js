@@ -19,6 +19,9 @@ export const authApi = baseApi.injectEndpoints({
       transformResponse: (response) => {
         return response.data;
       },
+      transformErrorResponse: (response, meta, arg) => {
+        return response.data;
+      },
       invalidatesTags: ['User'],
     }),
     logout: builder.mutation({

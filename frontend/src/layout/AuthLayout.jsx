@@ -26,8 +26,12 @@ const AuthLayout = () => {
   }
 
   return (
-    <div>
-      <Outlet />
+    <div className="min-h-svh bg-background text-foreground">
+      <main className="grid min-h-svh place-items-center p-6">
+        <div className="w-full max-w-md">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 };
