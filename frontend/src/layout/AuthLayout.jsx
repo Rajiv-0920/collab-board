@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router';
 import { useGetMeQuery } from '../services/userApi';
 import { useEffect } from 'react';
+import PageLoader from '../components/utils/PageLoader';
 
 const AuthLayout = () => {
   const {
@@ -18,11 +19,11 @@ const AuthLayout = () => {
   }, [me, navigate]);
 
   if (isMeLoading) {
-    return <p>Loading...</p>;
+    return <PageLoader />;
   }
 
   if (isMeSuccess) {
-    return <p>Redirecting...</p>;
+    return <PageLoader text="Redirecting..." />;
   }
 
   return (

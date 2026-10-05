@@ -18,7 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
-import { Loader2 } from 'lucide-react';
+import { Loader2, ClipboardList } from 'lucide-react';
 
 const LoginForm = () => {
   const [user, setUser] = useState({
@@ -63,7 +63,7 @@ const LoginForm = () => {
     <Card className="w-full max-w-md border-border/70 shadow-sm">
       <CardHeader className="space-y-2 text-center">
         <div className="mx-auto mb-2 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          C
+          <ClipboardList />
         </div>
 
         <CardTitle className="text-2xl font-semibold tracking-tight">

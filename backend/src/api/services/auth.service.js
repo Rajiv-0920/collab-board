@@ -10,7 +10,9 @@ export const registerUser = async ({ name, email, password }) => {
   // 1. Check duplicate user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    const error = new Error('User already exists with this email.');
+    const error = new Error(
+      'This email is already registered. Log in instead?',
+    );
     error.statusCode = 409;
     throw error;
   }

@@ -8,6 +8,9 @@ export const authApi = baseApi.injectEndpoints({
         method: 'POST',
         body: credentials,
       }),
+      transformErrorResponse: (response, meta, arg) => {
+        return response.data;
+      },
       invalidatesTags: ['User'],
     }),
     login: builder.mutation({

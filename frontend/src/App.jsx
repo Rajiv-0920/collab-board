@@ -1,7 +1,7 @@
 import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import AuthLayout from './layout/AuthLayout';
 import Login from './pages/Login';
-import RegisterPage from './pages/RegisterPage';
+import Register from './pages/Register';
 import ErrorPage from './pages/ErrorPage';
 import RootLayout from './layout/RootLayout';
 import HomePage from './pages/HomePage';
@@ -42,7 +42,7 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { index: true, element: <Navigate to="login" replace /> },
-      { path: 'register', element: <RegisterPage /> },
+      { path: 'register', element: <Register /> },
       {
         path: 'login',
         element: <Login />,
