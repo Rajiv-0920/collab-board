@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useLoginMutation } from '../services/authApi';
 import { selectCurrentUser, setCredentials } from '../store/authSlice';
 import { Link } from 'react-router';
+import { Button } from '@/components/ui/button';
 
 const LoginPage = () => {
   const [user, setUser] = useState({ name: '', email: '', password: '' });
@@ -49,6 +50,7 @@ const LoginPage = () => {
       <p>
         New <Link to="/auth/register">register</Link>
       </p>
+      <Button>Hello</Button>
     </div>
   );
 };
