@@ -8,31 +8,42 @@ import HomePage from './pages/HomePage';
 import DashboardPage from './pages/DashboardPage';
 import BoardPage from './pages/BoardPage';
 import ProfilePage from './pages/ProfilePage';
-
-import { useEffect } from 'react';
-import { io } from 'socket.io-client';
+import ProtectedRoute from './layout/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <RootLayout />,
+    element: <ProtectedRoute />,
     errorElement: <ErrorPage />,
     children: [
       {
-        index: true,
-        element: <HomePage />,
-      },
-      {
-        path: 'dashboard',
-        element: <DashboardPage />,
-      },
-      {
-        path: 'boards/:boardId',
-        element: <BoardPage />,
-      },
-      {
-        path: 'profile',
-        element: <ProfilePage />,
+        element: <RootLayout />,
+        children: [
+          {
+            index: true,
+            element: <Navigate to="/dashboard" replace />,
+          },
+          {
+            path: 'dashboard',
+            element: <DashboardPage />,
+          },
+          {
+            path: 'boards/:boardId',
+            element: <BoardPage />,
+          },
+          // {
+          //   path: 'profile',
+          //   element: <ProfilePage />,
+          // },
+          // {
+          //   path: 'invitations',
+          //   element: <InvitationsPage />,
+          // },
+          // {
+          //   path: 'settings',
+          //   element: <SettingsPage />,
+          // },
+        ],
       },
     ],
   },
