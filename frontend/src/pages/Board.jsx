@@ -18,7 +18,7 @@ import { boardsApi } from '../services/boardsApi';
 import MembersList from '../components/board/MembersList';
 import BoardActivity from '../components/board/BoardActivity';
 
-const BoardPage = () => {
+const Board = () => {
   const { boardId } = useParams();
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -452,4 +452,4 @@ const BoardPage = () => {
   );
 };
 
-export default BoardPage;
+export default Board;

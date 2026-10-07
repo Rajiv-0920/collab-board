@@ -2,19 +2,22 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router';
 import AuthLayout from './layout/AuthLayout';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ErrorPage from './pages/ErrorPage';
+import Error from './pages/Error';
 import RootLayout from './layout/RootLayout';
-import HomePage from './pages/HomePage';
-import DashboardPage from './pages/DashboardPage';
-import BoardPage from './pages/BoardPage';
-import ProfilePage from './pages/ProfilePage';
+import Home from './pages/Home';
+import Dashboard from './pages/Dashboard';
+import Board from './pages/Board';
+import Profile from './pages/Profile';
 import ProtectedRoute from './layout/ProtectedRoute';
+import Invitations from './pages/Invitations';
+import Settings from './pages/Settings';
+import Boards from './pages/Boards';
 
 const router = createBrowserRouter([
   {
     path: '/',
     element: <ProtectedRoute />,
-    errorElement: <ErrorPage />,
+    errorElement: <Error />,
     children: [
       {
         element: <RootLayout />,
@@ -25,24 +28,28 @@ const router = createBrowserRouter([
           },
           {
             path: 'dashboard',
-            element: <DashboardPage />,
+            element: <Dashboard />,
+          },
+          {
+            path: 'boards',
+            element: <Boards />,
           },
           {
             path: 'boards/:boardId',
-            element: <BoardPage />,
+            element: <Board />,
           },
-          // {
-          //   path: 'profile',
-          //   element: <ProfilePage />,
-          // },
-          // {
-          //   path: 'invitations',
-          //   element: <InvitationsPage />,
-          // },
-          // {
-          //   path: 'settings',
-          //   element: <SettingsPage />,
-          // },
+          {
+            path: 'profile',
+            element: <Profile />,
+          },
+          {
+            path: 'invitations',
+            element: <Invitations />,
+          },
+          {
+            path: 'settings',
+            element: <Settings />,
+          },
         ],
       },
     ],
@@ -50,7 +57,7 @@ const router = createBrowserRouter([
   {
     path: '/auth',
     element: <AuthLayout />,
-    errorElement: <ErrorPage />,
+    errorElement: <Error />,
     children: [
       { index: true, element: <Navigate to="login" replace /> },
       { path: 'register', element: <Register /> },
@@ -62,7 +69,7 @@ const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <ErrorPage />,
+    element: <Error />,
   },
 ]);
 

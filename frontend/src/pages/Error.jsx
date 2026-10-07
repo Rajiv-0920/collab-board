@@ -1,6 +1,6 @@
 import { useRouteError, isRouteErrorResponse, Link } from 'react-router';
 
-export default function ErrorPage() {
+export default function Error() {
   const error = useRouteError();
 
   let title = 'An unexpected error occurred';

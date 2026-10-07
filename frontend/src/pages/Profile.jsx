@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../store/authSlice';
 import { useUpdateMeMutation } from '../services/userApi';
 
-const ProfilePage = () => {
+const Profile = () => {
   const currentUser = useSelector(selectCurrentUser);
 
   const [name, setName] = useState('');
@@ -78,4 +78,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default Profile;

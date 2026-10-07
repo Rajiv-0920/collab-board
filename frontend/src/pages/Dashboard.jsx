@@ -19,7 +19,7 @@ import {
 import { inviteApi } from '../services/inviteApi';
 import InvitationCard from '../components/dashbaord/InvitationCard';
 
-const DashboardPage = () => {
+const Dashboard = () => {
   const [boardBody, setBoardBody] = useState({
     id: '',
     title: '',
@@ -220,4 +220,4 @@ const DashboardPage = () => {
   );
 };
 
-export default DashboardPage;
+export default Dashboard;

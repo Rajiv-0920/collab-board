@@ -1,6 +1,13 @@
 import { Outlet, useNavigate } from 'react-router';
 import { useGetMeQuery } from '../services/userApi';
 import { useEffect } from 'react';
+import {
+  SidebarInset,
+  SidebarProvider,
+  SidebarTrigger,
+} from '@/components/ui/sidebar';
+
+import AppSidebar from '@/components/app/AppSidebar';
 
 const RootLayout = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();
@@ -24,9 +31,19 @@ const RootLayout = () => {
   }
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <Outlet />
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+
+      <SidebarInset>
+        <header className="flex h-14 items-center gap-2 border-b bg-background px-4">
+          <SidebarTrigger />
+        </header>
+
+        <main className="flex-1 p-4 md:p-6">
+          <Outlet />
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 
