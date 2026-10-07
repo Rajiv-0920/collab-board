@@ -116,11 +116,10 @@ const AppSidebar = () => {
     refetch,
     isLoading: isBoardsLoading,
   } = useGetBoardsQuery();
-  console.log(boards);
+
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  // Temporary values – replace with real data later
   const invitationCount = invites?.length ?? 0;
   const isUserLoading = user === undefined;
 
