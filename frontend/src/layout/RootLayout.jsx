@@ -24,7 +24,7 @@ const RootLayout = () => {
   }
 
   return (
-    <div>
+    <div className="min-h-svh bg-background text-foreground">
       <Outlet />
     </div>
   );

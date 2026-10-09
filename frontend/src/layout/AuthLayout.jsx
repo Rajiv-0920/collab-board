@@ -1,6 +1,7 @@
 import { Outlet, useNavigate } from 'react-router';
 import { useGetMeQuery } from '../services/userApi';
 import { useEffect } from 'react';
+import PageLoader from '../components/utils/PageLoader';
 
 const AuthLayout = () => {
   const {
@@ -18,16 +19,20 @@ const AuthLayout = () => {
   }, [me, navigate]);
 
   if (isMeLoading) {
-    return <p>Loading...</p>;
+    return <PageLoader />;
   }
 
   if (isMeSuccess) {
-    return <p>Redirecting...</p>;
+    return <PageLoader text="Redirecting..." />;
   }
 
   return (
-    <div>
-      <Outlet />
+    <div className="min-h-svh bg-background text-foreground">
+      <main className="grid min-h-svh place-items-center p-6">
+        <div className="w-full max-w-md">
+          <Outlet />
+        </div>
+      </main>
     </div>
   );
 };

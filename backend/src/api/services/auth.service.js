@@ -10,7 +10,9 @@ export const registerUser = async ({ name, email, password }) => {
   // 1. Check duplicate user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    const error = new Error('User already exists with this email.');
+    const error = new Error(
+      'This email is already registered. Log in instead?',
+    );
     error.statusCode = 409;
     throw error;
   }
@@ -43,14 +45,18 @@ export const loginUser = async (res, { email, password, rememberMe }) => {
   const user = await User.findOne({ email }).select('+passwordHash');
 
   if (!user) {
-    const error = new Error('Please enter valid credentials.');
+    const error = new Error(
+      'Unable to Sign In. Please check your credentials and try again.',
+    );
     error.statusCode = 401;
     throw error;
   }
 
   const isPasswordMatch = await user.matchPassword(password);
   if (!isPasswordMatch) {
-    const error = new Error('Please enter valid credentials.');
+    const error = new Error(
+      'Unable to Sign In. Please check your credentials and try again.',
+    );
     error.statusCode = 401;
     throw error;
   }
