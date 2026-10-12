@@ -226,16 +226,13 @@
 import { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '../store/authSlice';
-import { Link } from 'react-router';
 
 import DashboardHeader from '../components/dashboard/DashboardHeader';
-import CreateBoardDialog from '../components/dashboard/CreateBoardDialog';
 
 import {
   useCreateBoardMutation,
   useGetBoardsQuery,
   useUpdateBoardMutation,
-  useDeleteBoardMutation,
 } from '../services/boardsApi';
 import { socket } from '../services/socket';
 import { boardsApi } from '../services/boardsApi';
@@ -246,16 +243,12 @@ import {
 } from '../services/inviteApi';
 import { inviteApi } from '../services/inviteApi';
 import DashboardStats from '@/components/dashboard/DashboardStats';
+import BoardGrid from '@/components/dashboard/BoardGrid';
+import BoardDialog from '@/components/dashboard/BoardDialog';
 
 const Dashboard = () => {
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
   const currentUser = useSelector(selectCurrentUser);
-
-  const [boardBody, setBoardBody] = useState({
-    id: '',
-    title: '',
-    description: '',
-  });
   const dispatch = useDispatch();
   const {
     data: boards,
@@ -265,13 +258,13 @@ const Dashboard = () => {
   const [createBoard, { isLoading: isBoardCreating, isError }] =
     useCreateBoardMutation();
   const [updateBoard, { isLoading: isUpdating }] = useUpdateBoardMutation();
-  const [deleteBoard, { isLoading: isDeleting }] = useDeleteBoardMutation();
   const { data: invites, isLoading: isInvitesLoading } = useGetInvitesQuery();
   const [acceptInvite] = useAcceptInviteMutation();
   const [declineInvite] = useDeclineInviteMutation();
 
-  const [isUpdate, setIsUpdate] = useState(false);
-  // const isLoading = isCreating || isUpdating;
+  const openCreate = () => setBoardDialog({ open: true, board: null });
+  const openEdit = (board) => setBoardDialog({ open: true, board });
+  const onOpenChange = (open) => setBoardDialog((prev) => ({ ...prev, open }));
 
   useEffect(() => {
     if (!socket.connected) {
@@ -334,33 +327,33 @@ const Dashboard = () => {
     };
   }, [boards, currentUser, dispatch]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      if (isUpdate) {
-        const result = await updateBoard({
-          id: boardBody.id,
-          body: boardBody,
-        }).unwrap();
-        setIsUpdate(false);
-      } else {
-        const result = await createBoard(boardBody).unwrap();
-      }
-    } catch (err) {
-      console.error('Login failed:', err);
-    } finally {
-      setBoardBody({ title: '', description: '' });
-    }
-  };
+  // const handleSubmit = async (e) => {
+  //   e.preventDefault();
+  //   try {
+  //     if (isUpdate) {
+  //       const result = await updateBoard({
+  //         id: boardBody.id,
+  //         body: boardBody,
+  //       }).unwrap();
+  //       setIsUpdate(false);
+  //     } else {
+  //       const result = await createBoard(boardBody).unwrap();
+  //     }
+  //   } catch (err) {
+  //     console.error('Login failed:', err);
+  //   } finally {
+  //     setBoardBody({ title: '', description: '' });
+  //   }
+  // };
 
-  const handleUpdate = async (body) => {
-    setIsUpdate(true);
-    setBoardBody({
-      id: body._id,
-      title: body.title,
-      description: body.description,
-    });
-  };
+  // const handleUpdate = async (body) => {
+  //   setIsUpdate(true);
+  //   setBoardBody({
+  //     id: body._id,
+  //     title: body.title,
+  //     description: body.description,
+  //   });
+  // };
 
   const onAccept = async (inviteId) => {
     try {
@@ -379,26 +372,39 @@ const Dashboard = () => {
     }
   };
 
-  const openCreateDialog = () => {
-    setIsCreateDialogOpen(true);
-  };
-
   return (
     <div className="w-full">
-      <DashboardHeader
-        name={currentUser?.name}
-        onCreateBoard={openCreateDialog}
-      />
+      <DashboardHeader name={currentUser?.name} onCreateBoard={onOpenChange} />
 
-      <CreateBoardDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
+      <BoardDialog
+        boardDialog={boardDialog}
+        onOpenChange={onOpenChange}
         onCreateBoard={createBoard}
-        isCreating={isBoardCreating}
+        onUpdateBoard={updateBoard}
+        isSaving={isBoardCreating || isUpdating}
       />
 
-      <div className="mt-8">
+      <div className="mt-8 space-y-8">
         <DashboardStats />
+
+        <section className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold tracking-tight">
+              Your Boards
+            </h2>
+
+            <p className="text-sm text-muted-foreground">
+              Your projects and shared workspaces.
+            </p>
+          </div>
+
+          <BoardGrid
+            boards={boards}
+            isLoading={isBoardsLoading}
+            onEdit={openEdit}
+            onCreate={openCreate}
+          />
+        </section>
       </div>
     </div>
   );

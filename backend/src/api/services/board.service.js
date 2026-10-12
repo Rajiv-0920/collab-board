@@ -9,16 +9,43 @@ import Activity from '../models/activity.model.js';
 import InviteBoard from '../models/inviteBoard.model.js';
 
 export const getBoardService = async (req) => {
-  const boardMember = await BoardMember.find({ userId: req.user._id });
-  if (!boardMember) {
-    const error = new Error('Board member not found');
-    error.status = 404;
-    throw error;
-  }
-  const board = await Board.find({
-    _id: { $in: boardMember.map((m) => m.boardId) },
+  const userMemberships = await BoardMember.find({ userId: req.user._id });
+
+  const boardIds = userMemberships.map((m) => m.boardId);
+
+  const boards = await Board.find({ _id: { $in: boardIds } }).lean();
+
+  const allBoardLists = await List.find({ boardId: { $in: boardIds } }).lean();
+
+  const allBoardTasks = await Card.find({ boardId: { $in: boardIds } }).lean();
+
+  const allBoardMembers = await BoardMember.find({
+    boardId: { $in: boardIds },
+  }).populate('userId');
+
+  boards.map((board) => {
+    const boardObj = board;
+    const boardMembers = allBoardMembers.filter(
+      (m) => m.boardId.toString() === board._id.toString(),
+    );
+
+    const boardLists = allBoardLists.filter(
+      (l) => l.boardId.toString() === board._id.toString(),
+    );
+    const boardTasks = allBoardTasks.filter(
+      (t) => t.boardId.toString() === board._id.toString(),
+    );
+
+    boardObj.summary = {
+      membersPreview: boardMembers,
+      memberCount: boardMembers.length,
+      taskCount: boardTasks.length,
+      listCount: boardLists.length,
+    };
+    return boardObj;
   });
-  return board;
+
+  return boards;
 };
 
 export const getBoardDetailsService = async (req, boardId, currentUserId) => {
