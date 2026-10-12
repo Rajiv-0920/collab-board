@@ -245,6 +245,7 @@ import { inviteApi } from '../services/inviteApi';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import BoardGrid from '@/components/dashboard/BoardGrid';
 import BoardDialog from '@/components/dashboard/BoardDialog';
+import { toast } from '@/components/ui/toast';
 
 const Dashboard = () => {
   const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
@@ -267,6 +268,17 @@ const Dashboard = () => {
   const onOpenChange = (open) => setBoardDialog((prev) => ({ ...prev, open }));
 
   useEffect(() => {
+    const successMessage = sessionStorage.getItem('login_success');
+    if (successMessage) {
+      sessionStorage.removeItem('login_success');
+      toast.add({
+        type: 'success',
+        description: successMessage,
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     if (!socket.connected) {
       socket.connect();
     }
@@ -285,6 +297,14 @@ const Dashboard = () => {
       dispatch(
         boardsApi.util.updateQueryData('getBoards', undefined, (draft) => {
           const boardToUpdate = draft.find((b) => b._id === updatedBoard._id);
+          if (
+            currentUser._id.toString() !== boardToUpdate.ownerId._id.toString()
+          ) {
+            toast.add({
+              type: 'info',
+              description: `“${boardToUpdate.title}” was updated by ${boardToUpdate.ownerId.name}.`,
+            });
+          }
           if (boardToUpdate) {
             boardToUpdate.title = updatedBoard.title;
             boardToUpdate.description = updatedBoard.description;

@@ -14,15 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { pluralize, timeAgo, getInitials } from './utils';
-import { useDeleteBoardMutation } from '../../services/boardsApi';
 
 /* -------------------------------- Helpers --------------------------------- */
 
 const MAX_VISIBLE_MEMBERS = 3;
 
 const BoardCard = ({ board, onEdit, canManage = false, onDeleteBoard }) => {
-  // const [deleteBoard, { isLoading: isDeleting }] = useDeleteBoardMutation();
-
   const { _id, title, description, updatedAt, summary = {} } = board;
 
   const {
@@ -90,7 +87,7 @@ const BoardCard = ({ board, onEdit, canManage = false, onDeleteBoard }) => {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => onDeleteBoard(board._id)}
+                onClick={() => onDeleteBoard(board)}
               >
                 <Trash2 className="mr-2 size-4" />
                 Delete

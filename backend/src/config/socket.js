@@ -17,9 +17,14 @@ const io = new Server(server, {
 io.use((socket, next) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie;
-    const queryString = cookieHeader.replace(/;/g, '&');
-    const params = new URLSearchParams(queryString);
-    const token = params.get('token');
+
+    if (!cookieHeader) {
+      console.log('No cookies found in handshake headers');
+      return;
+    }
+
+    const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
+    const token = match ? decodeURIComponent(match[1]) : null;
 
     if (!token) {
       return next(new Error('Authentication required'));
@@ -36,14 +41,13 @@ io.use((socket, next) => {
 });
 
 io.on('connection', (socket) => {
-  console.log('+ User connected:', socket.id);
-  console.log('+ Authenticated user:', socket.userId);
+  // console.log('+ User connected:', socket.id);
+  // console.log('+ Authenticated user:', socket.userId);
   // Personal room
   socket.join(socket.userId);
 
   socket.on('joinBoard', async (boardId, callback) => {
     try {
-      console.log(boardId);
       const member = await BoardMember.findOne({
         boardId,
         userId: socket.userId,

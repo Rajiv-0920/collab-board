@@ -16,7 +16,7 @@ const DashboardStats = () => {
   const totalBoards = boards?.length;
 
   const myBoards = boards?.filter(
-    (board) => String(board.ownerId) === String(currentUser._id),
+    (board) => String(board.ownerId._id) === String(currentUser._id),
   ).length;
 
   const sharedBoards = totalBoards - myBoards;

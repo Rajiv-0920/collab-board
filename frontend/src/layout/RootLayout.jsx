@@ -5,6 +5,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 
 import AppHeader from '@/components/app/AppHeader';
 import AppSidebar from '@/components/app/AppSidebar';
+import { Toaster } from '@/components/ui/toast';
 
 const RootLayout = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();
@@ -36,6 +37,7 @@ const RootLayout = () => {
 
         <main className="flex-1 p-4 md:p-6 bg-background">
           <Outlet />
+          <Toaster />
         </main>
       </SidebarInset>
     </SidebarProvider>

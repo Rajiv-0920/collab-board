@@ -160,6 +160,10 @@ const AppSidebar = () => {
       await logout().unwrap();
       dispatch(setCredentials(null));
       dispatch(baseApi.util.resetApiState());
+      sessionStorage.setItem(
+        'logout_message',
+        'You have been logged out successfully.',
+      );
       navigate('/auth/login');
     } catch (err) {
       console.error('Logout failed:', err);
@@ -214,28 +218,30 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         {/* Recent */}
-        <SidebarGroup className="py-1">
-          <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
-            Recent
-          </SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu className="gap-0.5">
-              {recentBoards.map((board) => (
-                <SidebarMenuItem key={board.url}>
-                  <SidebarMenuButton
-                    tooltip={board.title}
-                    isActive={isActive(board.url)}
-                    className={navButtonClass}
-                    render={<Link to={board.url} />}
-                  >
-                    <Clock className="size-4 text-muted-foreground" />
-                    <span className="truncate">{board.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
+        {recentBoards && recentBoards.length > 0 && (
+          <SidebarGroup className="py-1">
+            <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
+              Recent
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu className="gap-0.5">
+                {recentBoards.map((board) => (
+                  <SidebarMenuItem key={board.url}>
+                    <SidebarMenuButton
+                      tooltip={board.title}
+                      isActive={isActive(board.url)}
+                      className={navButtonClass}
+                      render={<Link to={board.url} />}
+                    >
+                      <Clock className="size-4 text-muted-foreground" />
+                      <span className="truncate">{board.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ))}
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
 
         {/* Account */}
         <SidebarGroup className="py-1">

@@ -10,13 +10,42 @@ import { selectCurrentUser } from '../../store/authSlice';
 import { useSelector } from 'react-redux';
 import { useState } from 'react';
 import { useDeleteBoardMutation } from '../../services/boardsApi';
+import DeleteBoardDialog from './DeleteBoardDialog';
+import { toast } from '@/components/ui/toast';
 
 const GRID_CLASSES = 'grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3';
 const SKELETON_COUNT = 6;
 
 const BoardGrid = ({ boards, isLoading, onEdit, onCreate }) => {
+  const [boardToDelete, setBoardToDelete] = useState(null);
   const currentUser = useSelector(selectCurrentUser);
-  const [deleteBoard, { isLoading: isDeleting }] = useDeleteBoardMutation();
+  const [deleteBoard, { isLoading: isBoardDeleting }] =
+    useDeleteBoardMutation();
+
+  const handleDeleteBoard = (board) => {
+    setBoardToDelete(board);
+  };
+
+  const onOpenChange = (open) => {
+    if (!open && !isBoardDeleting) {
+      setBoardToDelete(null);
+    }
+  };
+
+  const confirmDeleteBoard = async (board) => {
+    try {
+      await deleteBoard(board._id).unwrap();
+      toast.add({
+        type: 'success',
+        description: 'Board deleted successfully!',
+      });
+      setBoardToDelete(null);
+    } catch (error) {
+      toast.error(
+        error?.data?.message || 'Failed to delete board. Please try again.',
+      );
+    }
+  };
 
   if (isLoading) {
     return (
@@ -58,22 +87,29 @@ const BoardGrid = ({ boards, isLoading, onEdit, onCreate }) => {
 
   return (
     <div className={GRID_CLASSES}>
+      <DeleteBoardDialog
+        open={Boolean(boardToDelete)}
+        onOpenChange={onOpenChange}
+        board={boardToDelete}
+        onConfirm={confirmDeleteBoard}
+        isDeleting={isBoardDeleting}
+      />
       {boards.map((board) => (
         <div
           key={board._id}
           className={cn(
             'transition-opacity',
-            isDeleting && 'pointer-events-none opacity-50',
+            isBoardDeleting && 'pointer-events-none opacity-50',
           )}
         >
           <BoardCard
             board={board}
             canManage={
               Boolean(currentUser) &&
-              board.ownerId.toString() === currentUser._id.toString()
+              board.ownerId._id.toString() === currentUser._id.toString()
             }
             onEdit={onEdit}
-            onDeleteBoard={deleteBoard}
+            onDeleteBoard={handleDeleteBoard}
           />
         </div>
       ))}

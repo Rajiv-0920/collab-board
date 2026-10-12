@@ -13,7 +13,9 @@ export const getBoardService = async (req) => {
 
   const boardIds = userMemberships.map((m) => m.boardId);
 
-  const boards = await Board.find({ _id: { $in: boardIds } }).lean();
+  const boards = await Board.find({ _id: { $in: boardIds } })
+    .populate('ownerId')
+    .lean();
 
   const allBoardLists = await List.find({ boardId: { $in: boardIds } }).lean();
 

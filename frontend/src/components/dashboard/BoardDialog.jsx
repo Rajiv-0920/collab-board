@@ -1,5 +1,6 @@
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import BoardForm from './BoardForm';
+import { toast } from '@/components/ui/toast';
 
 const BoardDialog = ({
   boardDialog: { board, open },
@@ -11,8 +12,13 @@ const BoardDialog = ({
   const handleSubmit = async (values) => {
     if (board) {
       await onUpdateBoard({ id: board._id, body: values }).unwrap();
+      toast.add({
+        type: 'success',
+        description: 'Board updated successfully!',
+      });
     } else {
       await onCreateBoard(values).unwrap();
+      toast.add({ type: 'success', description: 'Your new board is ready!' });
     }
     onOpenChange(false);
   };
