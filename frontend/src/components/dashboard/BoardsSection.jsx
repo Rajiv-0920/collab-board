@@ -12,6 +12,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from '@/components/ui/pagination';
 
 import { selectCurrentUser } from '../../store/authSlice';
 import { useDeleteBoardMutation } from '../../services/boardsApi';
@@ -22,6 +31,7 @@ import BoardRow from './BoardRow';
 import BoardsNoResults from './BoardsNoResults';
 import BoardsEmptyState from './BoardsEmptyState';
 import DeleteBoardDialog from './DeleteBoardDialog';
+import BoardPagination from './BoardPagination';
 
 /* -------------------------------- Constants ------------------------------- */
 
@@ -83,12 +93,13 @@ const isBoardOwner = (board, user) =>
 
 const BoardsSection = ({
   boards = [],
+  pagination,
+  onPage,
   isLoading = false,
   onEdit,
   onCreate,
 }) => {
   const currentUser = useSelector(selectCurrentUser);
-
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('updated');
   const [view, setView] = useState(readStoredView);
@@ -312,6 +323,8 @@ const BoardsSection = ({
         onConfirm={confirmDeleteBoard}
         isDeleting={isBoardDeleting}
       />
+
+      <BoardPagination {...pagination} onPageChange={onPage} />
     </section>
   );
 };

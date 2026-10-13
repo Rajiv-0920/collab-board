@@ -253,14 +253,17 @@ const Dashboard = () => {
   const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
   const currentUser = useSelector(selectCurrentUser);
   const dispatch = useDispatch();
+  const [page, setPage] = useState(1);
   const {
-    data: boards,
-    refetch,
+    data,
     isLoading: isBoardsLoading,
-    isError: isBoardsError,
-    isFetching: isBoardsFetching,
     errors: boardsError,
-  } = useGetBoardsQuery();
+    isFetching: isBoardsFetching,
+    isError: isBoardsError,
+    refetch,
+  } = useGetBoardsQuery({ page, limit: 9 });
+  const boards = data?.boards ?? [];
+  const pagination = data?.pagination;
 
   const [createBoard, { isLoading: isBoardCreating, isError }] =
     useCreateBoardMutation();
@@ -394,6 +397,8 @@ const Dashboard = () => {
         ) : (
           <BoardsSection
             boards={boards}
+            pagination={pagination}
+            onPage={setPage}
             isLoading={isBoardsLoading}
             currentUser={currentUser}
             onEdit={openEdit}

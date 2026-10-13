@@ -1,5 +1,12 @@
 import StatCard from './StatCard';
-import { LayoutGrid, FolderKanban, Users } from 'lucide-react';
+import {
+  LayoutGrid,
+  FolderKanban,
+  Users,
+  ListTodo,
+  CheckSquare,
+  UserGroup,
+} from 'lucide-react';
 
 import { useGetBoardsQuery } from '../../services/boardsApi';
 import { useSelector } from 'react-redux';
@@ -7,19 +14,23 @@ import { selectCurrentUser } from '@/store/authSlice';
 
 const DashboardStats = () => {
   const {
-    data: boards = [],
-    refetch,
+    data,
     isLoading: isBoardsLoading,
+    errors: boardsError,
+    isFetching: isBoardsFetching,
+    isError: isBoardsError,
+    refetch,
   } = useGetBoardsQuery();
-  const currentUser = useSelector(selectCurrentUser);
-
-  const totalBoards = boards?.length;
-
-  const myBoards = boards?.filter(
-    (board) => String(board.ownerId._id) === String(currentUser._id),
-  ).length;
-
-  const sharedBoards = totalBoards - myBoards;
+  const boards = data?.boards ?? [];
+  const {
+    totalBoards = 0,
+    myBoards = 0,
+    sharedBoards = 0,
+    totalLists = 0,
+    totalTasks = 0,
+    totalMembers = 0,
+    totalUniqueMembers = 0,
+  } = data?.stats ?? {};
 
   const stats = [
     {
@@ -40,7 +51,26 @@ const DashboardStats = () => {
       description: 'Boards shared with you',
       icon: Users,
     },
+    {
+      title: 'Total Lists',
+      value: totalLists,
+      description: 'Lists across all boards',
+      icon: ListTodo,
+    },
+    {
+      title: 'Total Tasks',
+      value: totalTasks,
+      description: 'Tasks across all lists',
+      icon: CheckSquare,
+    },
+    {
+      title: 'Total Members',
+      value: totalUniqueMembers,
+      description: 'Unique collaborators across your boards',
+      icon: UserGroup,
+    },
   ];
+
   return (
     <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {stats.map((stat) => (

@@ -9,45 +9,138 @@ import Activity from '../models/activity.model.js';
 import InviteBoard from '../models/inviteBoard.model.js';
 
 export const getBoardService = async (req) => {
-  const userMemberships = await BoardMember.find({ userId: req.user._id });
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(
+    50,
+    Math.max(1, Number.parseInt(req.query.limit, 10) || 9),
+  );
 
-  const boardIds = userMemberships.map((m) => m.boardId);
+  // Get IDs of boards the current user belongs to
+  const boardIds = await BoardMember.distinct('boardId', {
+    userId: req.user._id,
+  });
 
+  const totalBoards = await Board.countDocuments({
+    _id: { $in: boardIds },
+  });
+
+  const myBoards = await Board.countDocuments({
+    ownerId: { $in: req.user._id },
+  });
+
+  const sharedBoards = totalBoards - myBoards;
+
+  const totalPages = Math.ceil(totalBoards / limit);
+  const currentPage = Math.min(page, Math.max(totalPages, 1));
+  const skip = (currentPage - 1) * limit;
+
+  // Fetch only the boards for the current page
   const boards = await Board.find({ _id: { $in: boardIds } })
+    .sort({ updatedAt: -1, _id: -1 })
+    .skip(skip)
+    .limit(limit)
     .populate('ownerId')
     .lean();
 
-  const allBoardLists = await List.find({ boardId: { $in: boardIds } }).lean();
+  const currentBoardIds = boards.map((board) => board._id);
 
-  const allBoardTasks = await Card.find({ boardId: { $in: boardIds } }).lean();
+  // No need to query child data when the page has no boards
+  if (currentBoardIds.length === 0) {
+    return {
+      boards: [],
+      pagination: {
+        currentPage,
+        limit,
+        totalBoards,
+        totalPages,
+        hasNextPage: false,
+        hasPrevPage: currentPage > 1,
+      },
+    };
+  }
 
-  const allBoardMembers = await BoardMember.find({
-    boardId: { $in: boardIds },
-  }).populate('userId');
+  // Fetch summary data only for boards on this page
+  const [allBoardLists, allBoardTasks, allBoardMembers] = await Promise.all([
+    List.find({ boardId: { $in: currentBoardIds } }).lean(),
 
-  boards.map((board) => {
-    const boardObj = board;
+    Card.find({ boardId: { $in: currentBoardIds } }).lean(),
+
+    BoardMember.find({
+      boardId: { $in: currentBoardIds },
+    })
+      .populate({
+        path: 'userId',
+        select: 'name avatarUrl',
+      })
+      .lean(),
+  ]);
+
+  const [totalLists, totalTasks, totalMembers, totalUniqueMembers] =
+    await Promise.all([
+      List.countDocuments({
+        boardId: { $in: boardIds },
+      }),
+
+      Card.countDocuments({
+        boardId: { $in: boardIds },
+      }),
+
+      BoardMember.countDocuments({
+        userId: req.user._id,
+      }),
+      BoardMember.distinct('userId', {
+        boardId: { $in: boardIds },
+      }).then((userIds) => userIds.length),
+    ]);
+
+  const boardsWithSummary = boards.map((board) => {
+    const boardId = board._id.toString();
+
     const boardMembers = allBoardMembers.filter(
-      (m) => m.boardId.toString() === board._id.toString(),
+      (member) => member.boardId.toString() === boardId,
     );
 
     const boardLists = allBoardLists.filter(
-      (l) => l.boardId.toString() === board._id.toString(),
-    );
-    const boardTasks = allBoardTasks.filter(
-      (t) => t.boardId.toString() === board._id.toString(),
+      (list) => list.boardId.toString() === boardId,
     );
 
-    boardObj.summary = {
-      membersPreview: boardMembers,
-      memberCount: boardMembers.length,
-      taskCount: boardTasks.length,
-      listCount: boardLists.length,
+    const boardTasks = allBoardTasks.filter(
+      (task) => task.boardId.toString() === boardId,
+    );
+
+    return {
+      ...board,
+      summary: {
+        membersPreview: boardMembers.slice(0, 4),
+        memberCount: boardMembers.length,
+        taskCount: boardTasks.length,
+        listCount: boardLists.length,
+      },
     };
-    return boardObj;
   });
 
-  return boards;
+  return {
+    boards: boardsWithSummary,
+
+    stats: {
+      totalBoards,
+      myBoards,
+      sharedBoards,
+      totalLists,
+      totalTasks,
+      totalMembers,
+      totalUniqueMembers,
+    },
+
+    pagination: {
+      currentPage,
+      limit,
+      totalBoards,
+      totalPages,
+      hasNextPage: currentPage < totalPages,
+      hasPrevPage: currentPage > 1,
+    },
+  };
 };
 
 export const getBoardDetailsService = async (req, boardId, currentUserId) => {

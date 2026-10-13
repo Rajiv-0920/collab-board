@@ -3,7 +3,8 @@ import { baseApi } from './baseApi';
 export const boardsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getBoards: builder.query({
-      query: () => '/boards',
+      query: ({ page = 1, limit = 9 } = {}) =>
+        `/boards?page=${page}&limit=${limit}`,
       transformResponse: (response) => response.data,
       providesTags: ['Boards'],
     }),

@@ -112,10 +112,14 @@ const AppSidebar = () => {
   const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
   const { data: invites, isLoading: isInvitesLoading } = useGetInvitesQuery();
   const {
-    data: boards,
-    refetch,
+    data,
     isLoading: isBoardsLoading,
-  } = useGetBoardsQuery();
+    errors: boardsError,
+    isFetching: isBoardsFetching,
+    isError: isBoardsError,
+    refetch,
+  } = useGetBoardsQuery({ page: 1, limit: 6 });
+  const boards = data?.boards ?? [];
 
   const dispatch = useDispatch();
   const navigate = useNavigate();

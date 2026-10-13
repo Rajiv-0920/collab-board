@@ -1,23 +1,22 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 
 const StatCard = ({ title, value, description, icon: Icon }) => {
   return (
-    <Card className="transition-colors hover:border-primary/30">
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+    <Card className="gap-1 p-4 shadow-none transition-colors hover:border-primary/30">
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-muted-foreground">
           {title}
-        </CardTitle>
+        </span>
+        <Icon className="size-3.5 text-muted-foreground/70" />
+      </div>
 
-        <div className="flex size-9 items-center justify-center rounded-md border bg-muted/50">
-          <Icon className="size-4 text-muted-foreground" />
-        </div>
-      </CardHeader>
+      <div className="text-2xl font-semibold tracking-tight tabular-nums">
+        {value}
+      </div>
 
-      <CardContent>
-        <div className="text-3xl font-semibold tracking-tight">{value}</div>
-
-        <p className="mt-1.5 text-xs text-muted-foreground">{description}</p>
-      </CardContent>
+      {description && (
+        <p className="truncate text-xs text-muted-foreground">{description}</p>
+      )}
     </Card>
   );
 };
