@@ -111,6 +111,8 @@ const AppSidebar = () => {
   const { theme, setTheme } = useTheme();
   const [logout, { isLoading: isLogoutLoading }] = useLogoutMutation();
   const { data: invites, isLoading: isInvitesLoading } = useGetInvitesQuery();
+  const pendingInvites = invites?.filter((i) => i.status === 'pending');
+
   const {
     data,
     isLoading: isBoardsLoading,
@@ -124,7 +126,6 @@ const AppSidebar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  const invitationCount = invites?.length ?? 0;
   const isUserLoading = user === undefined;
 
   const recentBoards =
@@ -140,7 +141,7 @@ const AppSidebar = () => {
       title: 'Invitations',
       url: '/invitations',
       icon: Mail,
-      badge: invitationCount,
+      badge: pendingInvites?.length,
     },
   ];
 

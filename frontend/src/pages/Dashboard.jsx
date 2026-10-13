@@ -248,6 +248,7 @@ import BoardDialog from '@/components/dashboard/BoardDialog';
 import { toast } from '@/components/ui/toast';
 import BoardsErrorState from '../components/dashboard/BoardsErrorState';
 import BoardsSection from '@/components/dashboard/BoardsSection';
+import PendingInvitations from './PendingInvitations';
 
 const Dashboard = () => {
   const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
@@ -387,6 +388,13 @@ const Dashboard = () => {
 
       <div className="mt-8 space-y-8">
         <DashboardStats />
+
+        <PendingInvitations
+          invites={invites}
+          isLoading={isInvitesLoading}
+          onAccept={onAccept}
+          onDecline={onDecline}
+        />
 
         {isBoardsError ? (
           <BoardsErrorState
