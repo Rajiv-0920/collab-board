@@ -247,6 +247,7 @@ import BoardGrid from '@/components/dashboard/BoardGrid';
 import BoardDialog from '@/components/dashboard/BoardDialog';
 import { toast } from '@/components/ui/toast';
 import BoardsErrorState from '../components/dashboard/BoardsErrorState';
+import BoardsSection from '@/components/dashboard/BoardsSection';
 
 const Dashboard = () => {
   const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
@@ -371,7 +372,7 @@ const Dashboard = () => {
 
   return (
     <div className="w-full">
-      <DashboardHeader name={currentUser?.name} onCreateBoard={onOpenChange} />
+      <DashboardHeader name={currentUser?.name} onCreateBoard={openCreate} />
 
       <BoardDialog
         boardDialog={boardDialog}
@@ -391,24 +392,13 @@ const Dashboard = () => {
             isRetrying={isBoardsFetching}
           />
         ) : (
-          <section className="space-y-4">
-            <div>
-              <h2 className="text-lg font-semibold tracking-tight">
-                Your Boards
-              </h2>
-
-              <p className="text-sm text-muted-foreground">
-                Your projects and shared workspaces.
-              </p>
-            </div>
-
-            <BoardGrid
-              boards={boards}
-              isLoading={isBoardsLoading}
-              onEdit={openEdit}
-              onCreate={openCreate}
-            />
-          </section>
+          <BoardsSection
+            boards={boards}
+            isLoading={isBoardsLoading}
+            currentUser={currentUser}
+            onEdit={openEdit}
+            onCreate={openCreate}
+          />
         )}
       </div>
     </div>

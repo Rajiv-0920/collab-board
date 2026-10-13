@@ -19,7 +19,7 @@ import { pluralize, timeAgo, getInitials } from './utils';
 
 const MAX_VISIBLE_MEMBERS = 3;
 
-const BoardCard = ({ board, onEdit, canManage = false, onDeleteBoard }) => {
+const BoardCard = ({ board, onEdit, canManage = false, onDelete }) => {
   const { _id, title, description, updatedAt, summary = {} } = board;
 
   const {
@@ -80,14 +80,14 @@ const BoardCard = ({ board, onEdit, canManage = false, onDeleteBoard }) => {
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" className="w-40">
-              <DropdownMenuItem onClick={() => onEdit(board)}>
+              <DropdownMenuItem onClick={() => onEdit?.(board)}>
                 <Pencil className="mr-2 size-4" />
                 Edit
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="text-destructive focus:text-destructive"
-                onClick={() => onDeleteBoard(board)}
+                onClick={() => onDelete?.(board)}
               >
                 <Trash2 className="mr-2 size-4" />
                 Delete
