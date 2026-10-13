@@ -246,6 +246,7 @@ import DashboardStats from '@/components/dashboard/DashboardStats';
 import BoardGrid from '@/components/dashboard/BoardGrid';
 import BoardDialog from '@/components/dashboard/BoardDialog';
 import { toast } from '@/components/ui/toast';
+import BoardsErrorState from '../components/dashboard/BoardsErrorState';
 
 const Dashboard = () => {
   const [boardDialog, setBoardDialog] = useState({ open: false, board: null });
@@ -255,7 +256,11 @@ const Dashboard = () => {
     data: boards,
     refetch,
     isLoading: isBoardsLoading,
+    isError: isBoardsError,
+    isFetching: isBoardsFetching,
+    errors: boardsError,
   } = useGetBoardsQuery();
+
   const [createBoard, { isLoading: isBoardCreating, isError }] =
     useCreateBoardMutation();
   const [updateBoard, { isLoading: isUpdating }] = useUpdateBoardMutation();
@@ -347,34 +352,6 @@ const Dashboard = () => {
     };
   }, [boards, currentUser, dispatch]);
 
-  // const handleSubmit = async (e) => {
-  //   e.preventDefault();
-  //   try {
-  //     if (isUpdate) {
-  //       const result = await updateBoard({
-  //         id: boardBody.id,
-  //         body: boardBody,
-  //       }).unwrap();
-  //       setIsUpdate(false);
-  //     } else {
-  //       const result = await createBoard(boardBody).unwrap();
-  //     }
-  //   } catch (err) {
-  //     console.error('Login failed:', err);
-  //   } finally {
-  //     setBoardBody({ title: '', description: '' });
-  //   }
-  // };
-
-  // const handleUpdate = async (body) => {
-  //   setIsUpdate(true);
-  //   setBoardBody({
-  //     id: body._id,
-  //     title: body.title,
-  //     description: body.description,
-  //   });
-  // };
-
   const onAccept = async (inviteId) => {
     try {
       await acceptInvite(inviteId);
@@ -407,24 +384,32 @@ const Dashboard = () => {
       <div className="mt-8 space-y-8">
         <DashboardStats />
 
-        <section className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold tracking-tight">
-              Your Boards
-            </h2>
-
-            <p className="text-sm text-muted-foreground">
-              Your projects and shared workspaces.
-            </p>
-          </div>
-
-          <BoardGrid
-            boards={boards}
-            isLoading={isBoardsLoading}
-            onEdit={openEdit}
-            onCreate={openCreate}
+        {isBoardsError ? (
+          <BoardsErrorState
+            error={boardsError}
+            onRetry={refetch}
+            isRetrying={isBoardsFetching}
           />
-        </section>
+        ) : (
+          <section className="space-y-4">
+            <div>
+              <h2 className="text-lg font-semibold tracking-tight">
+                Your Boards
+              </h2>
+
+              <p className="text-sm text-muted-foreground">
+                Your projects and shared workspaces.
+              </p>
+            </div>
+
+            <BoardGrid
+              boards={boards}
+              isLoading={isBoardsLoading}
+              onEdit={openEdit}
+              onCreate={openCreate}
+            />
+          </section>
+        )}
       </div>
     </div>
   );
