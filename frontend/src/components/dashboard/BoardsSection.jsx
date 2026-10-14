@@ -1,26 +1,18 @@
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { ArrowUpDown, Check, LayoutGrid, List, Search, X } from 'lucide-react';
+import {
+  ArrowUpDown,
+  LayoutGrid,
+  List,
+  Search,
+  ShieldCheck,
+  X,
+} from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { toast } from '@/components/ui/toast';
-import {
-  Pagination,
-  PaginationContent,
-  PaginationEllipsis,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from '@/components/ui/pagination';
 
 import { selectCurrentUser } from '../../store/authSlice';
 import { useDeleteBoardMutation } from '../../services/boardsApi';
@@ -32,14 +24,28 @@ import BoardsNoResults from './BoardsNoResults';
 import BoardsEmptyState from './BoardsEmptyState';
 import DeleteBoardDialog from './DeleteBoardDialog';
 import BoardPagination from './BoardPagination';
-
-/* -------------------------------- Constants ------------------------------- */
+import FilterDropdown from './FilterDropdown';
 
 const VIEW_STORAGE_KEY = 'boards:view';
+const SEARCH_DEBOUNCE_MS = 400;
+
+const TYPE_OPTIONS = [
+  { value: 'all', label: 'All Boards' },
+  { value: 'mine', label: 'My Boards' },
+  { value: 'shared', label: 'Shared with Me' },
+];
 
 const SORT_OPTIONS = [
   { value: 'updated', label: 'Recently updated' },
-  { value: 'name', label: 'Name (A–Z)' },
+  { value: 'created', label: 'Recently created' },
+  { value: 'name_asc', label: 'Name (A–Z)' },
+];
+
+const ROLE_OPTIONS = [
+  { value: '', label: 'All roles' },
+  { value: 'owner', label: 'Owner' },
+  { value: 'editor', label: 'Editor' },
+  { value: 'viewer', label: 'Viewer' },
 ];
 
 const VIEW_OPTIONS = [
@@ -47,17 +53,12 @@ const VIEW_OPTIONS = [
   { value: 'list', label: 'List view', icon: List },
 ];
 
-const SORTERS = {
-  updated: (a, b) =>
-    (Date.parse(b.updatedAt) || 0) - (Date.parse(a.updatedAt) || 0),
-  name: (a, b) =>
-    (a.title ?? '').localeCompare(b.title ?? '', undefined, {
-      sensitivity: 'base',
-      numeric: true,
-    }),
+export const DEFAULT_FILTERS = {
+  search: '',
+  type: 'all',
+  role: '',
+  sort: 'updated',
 };
-
-/* -------------------------------- Helpers --------------------------------- */
 
 const readStoredView = () => {
   try {
@@ -75,58 +76,76 @@ const storeView = (view) => {
   }
 };
 
-// Every word must appear in the title or the description.
-const matchesTerms = (board, terms) => {
-  if (terms.length === 0) return true;
-  const haystack =
-    `${board.title ?? ''} ${board.description ?? ''}`.toLowerCase();
-  return terms.every((term) => haystack.includes(term));
-};
-
-// Works whether ownerId is a plain id string or a populated { _id } object.
 const getId = (value) => String(value?._id ?? value ?? '');
 
 const isBoardOwner = (board, user) =>
   Boolean(user) && getId(board.ownerId) === getId(user._id);
 
-/* ------------------------------- Component -------------------------------- */
+const isRoleDisabled = (role, type) =>
+  (type === 'shared' && role === 'owner') ||
+  (type === 'mine' && (role === 'editor' || role === 'viewer'));
 
 const BoardsSection = ({
   boards = [],
   pagination,
   onPage,
+  filters = DEFAULT_FILTERS,
+  onFilterChange,
+  onClearFilters,
   isLoading = false,
+  isFetching = false,
   onEdit,
   onCreate,
 }) => {
   const currentUser = useSelector(selectCurrentUser);
-  const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('updated');
   const [view, setView] = useState(readStoredView);
+
+  const [searchInput, setSearchInput] = useState(filters.search ?? '');
 
   const [boardToDelete, setBoardToDelete] = useState(null);
   const [deleteBoard, { isLoading: isBoardDeleting }] =
     useDeleteBoardMutation();
 
-  const deferredQuery = useDeferredValue(query);
-  const trimmedQuery = deferredQuery.trim();
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const next = searchInput.trim();
+      if (next !== (filters.search ?? '')) onFilterChange('search', next);
+    }, SEARCH_DEBOUNCE_MS);
 
-  const visibleBoards = useMemo(() => {
-    const terms = trimmedQuery.toLowerCase().split(/\s+/).filter(Boolean);
-    return boards
-      .filter((board) => matchesTerms(board, terms))
-      .sort(SORTERS[sort]);
-  }, [boards, trimmedQuery, sort]);
+    return () => clearTimeout(timer); // cancel the old timer on every keystroke
+  }, [searchInput, filters.search, onFilterChange]);
 
-  const canManageBoard = (board) => isBoardOwner(board, currentUser);
-  const deletingBoardId = isBoardDeleting ? boardToDelete?._id : undefined;
+  /* ---- Filter handlers ---- */
+  const handleTypeChange = (type) => {
+    onFilterChange('type', type);
+    // Drop a role that can't exist under the new type (e.g. Owner + Shared)
+    if (isRoleDisabled(filters.role, type)) onFilterChange('role', '');
+  };
 
+  const clearSearch = () => {
+    setSearchInput('');
+    onFilterChange('search', '');
+  };
+
+  const clearAllFilters = () => {
+    setSearchInput('');
+    onClearFilters();
+  };
+
+  const hasActiveFilters =
+    Boolean(filters.search) ||
+    filters.type !== DEFAULT_FILTERS.type ||
+    Boolean(filters.role) ||
+    filters.sort !== DEFAULT_FILTERS.sort;
+
+  /* ---- View + delete ---- */
   const changeView = (next) => {
     setView(next);
     storeView(next);
   };
 
-  const clearSearch = () => setQuery('');
+  const canManageBoard = (board) => isBoardOwner(board, currentUser);
+  const deletingBoardId = isBoardDeleting ? boardToDelete?._id : undefined;
 
   const handleDeleteOpenChange = (open) => {
     if (!open && !isBoardDeleting) setBoardToDelete(null);
@@ -149,14 +168,15 @@ const BoardsSection = ({
     }
   };
 
-  const currentSort = SORT_OPTIONS.find((option) => option.value === sort);
   const hasBoards = boards.length > 0;
-  const isSearching = trimmedQuery.length > 0;
-  const hasNoMatches = !isLoading && hasBoards && visibleBoards.length === 0;
+  const hasNoMatches = !isLoading && !hasBoards && hasActiveFilters;
+  const matchCount = pagination?.totalBoards ?? boards.length;
 
   let content;
   if (hasNoMatches) {
-    content = <BoardsNoResults query={trimmedQuery} onClear={clearSearch} />;
+    content = (
+      <BoardsNoResults query={filters.search} onClear={clearAllFilters} />
+    );
   } else if (view === 'list' && isLoading) {
     content = <RowSkeletons />;
   } else if (view === 'list' && !hasBoards) {
@@ -164,7 +184,7 @@ const BoardsSection = ({
   } else if (view === 'list') {
     content = (
       <ul className="divide-y overflow-hidden rounded-xl border bg-card">
-        {visibleBoards.map((board) => (
+        {boards.map((board) => (
           <li
             key={board._id}
             className={cn(
@@ -185,7 +205,7 @@ const BoardsSection = ({
   } else {
     content = (
       <BoardGrid
-        boards={visibleBoards}
+        boards={boards}
         isLoading={isLoading}
         onEdit={onEdit}
         onDelete={setBoardToDelete}
@@ -205,9 +225,30 @@ const BoardsSection = ({
         </p>
       </div>
 
+      {/* Board type tabs: All / Mine / Shared */}
+      <div
+        role="group"
+        aria-label="Board type"
+        className="flex w-fit items-center gap-0.5 rounded-md border p-0.5"
+      >
+        {TYPE_OPTIONS.map(({ value, label }) => (
+          <Button
+            key={value}
+            type="button"
+            size="sm"
+            variant={filters.type === value ? 'secondary' : 'ghost'}
+            aria-pressed={filters.type === value}
+            disabled={isLoading}
+            onClick={() => handleTypeChange(value)}
+          >
+            {label}
+          </Button>
+        ))}
+      </div>
+
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
-        {/* Search */}
+        {/* Search (title) */}
         <div className="relative w-full sm:max-w-xs sm:flex-1">
           <Search
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -215,20 +256,22 @@ const BoardsSection = ({
           />
           <Input
             type="text"
-            value={query}
+            value={searchInput}
+            // Only disabled on the very first load. Never disable it while
+            // fetching, or the input loses focus after every search.
             disabled={isLoading}
-            placeholder="Search boards..."
+            placeholder="Search boards by title or description..."
             aria-label="Search boards by title or description"
             className="px-9"
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(event) => setSearchInput(event.target.value)}
             onKeyDown={(event) => {
-              if (event.key === 'Escape' && query) {
+              if (event.key === 'Escape' && searchInput) {
                 event.preventDefault();
                 clearSearch();
               }
             }}
           />
-          {query && (
+          {searchInput && (
             <Button
               type="button"
               variant="ghost"
@@ -243,40 +286,26 @@ const BoardsSection = ({
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {/* Sort */}
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={isLoading}
-                  aria-label={`Sort boards: ${currentSort.label}`}
-                />
-              }
-            >
-              <ArrowUpDown className="size-4 sm:mr-2" aria-hidden="true" />
-              <span className="hidden sm:inline">{currentSort.label}</span>
-            </DropdownMenuTrigger>
+          {/* Role */}
+          <FilterDropdown
+            icon={ShieldCheck}
+            ariaLabel="Filter by role"
+            options={ROLE_OPTIONS}
+            value={filters.role}
+            disabled={isLoading}
+            isOptionDisabled={(role) => isRoleDisabled(role, filters.type)}
+            onChange={(role) => onFilterChange('role', role)}
+          />
 
-            <DropdownMenuContent align="end" className="w-48">
-              {SORT_OPTIONS.map((option) => (
-                <DropdownMenuItem
-                  key={option.value}
-                  onClick={() => setSort(option.value)}
-                >
-                  {option.label}
-                  <Check
-                    className={cn(
-                      'ml-auto size-4',
-                      sort !== option.value && 'invisible',
-                    )}
-                    aria-hidden="true"
-                  />
-                </DropdownMenuItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Sort */}
+          <FilterDropdown
+            icon={ArrowUpDown}
+            ariaLabel="Sort boards"
+            options={SORT_OPTIONS}
+            value={filters.sort}
+            disabled={isLoading}
+            onChange={(sort) => onFilterChange('sort', sort)}
+          />
 
           {/* View toggle */}
           <div
@@ -302,18 +331,36 @@ const BoardsSection = ({
         </div>
       </div>
 
-      {/* Result count (announced to screen readers) */}
-      {isSearching && !isLoading && (
-        <p
-          aria-live="polite"
-          className="text-xs tabular-nums text-muted-foreground"
-        >
-          {visibleBoards.length} of {boards.length}{' '}
-          {boards.length === 1 ? 'board' : 'boards'}
-        </p>
+      {/* Result count + clear (announced to screen readers) */}
+      {hasActiveFilters && !isLoading && (
+        <div className="flex items-center gap-3">
+          <p
+            aria-live="polite"
+            className="text-xs tabular-nums text-muted-foreground"
+          >
+            {matchCount} {matchCount === 1 ? 'board' : 'boards'} found
+          </p>
+          <Button
+            type="button"
+            variant="link"
+            size="sm"
+            className="h-auto p-0 text-xs"
+            onClick={clearAllFilters}
+          >
+            Clear filters
+          </Button>
+        </div>
       )}
 
-      {content}
+      {/* Dim the old results while the new ones load (no empty flash) */}
+      <div
+        className={cn(
+          'transition-opacity',
+          isFetching && !isLoading && 'pointer-events-none opacity-60',
+        )}
+      >
+        {content}
+      </div>
 
       {/* One delete dialog serves both grid and list view */}
       <DeleteBoardDialog

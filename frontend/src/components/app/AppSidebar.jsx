@@ -89,8 +89,11 @@ function NavItem({ item, isActive }) {
         <SidebarMenuBadge
           className={cn(
             'right-2 min-w-5 justify-center rounded-full bg-primary px-1.5 text-[10px] font-semibold text-primary-foreground',
+            // Keep the text color when the menu button is hovered or active
+            'peer-hover/menu-button:text-primary-foreground peer-data-[active=true]/menu-button:text-primary-foreground',
             'group-data-[collapsible=icon]:right-1 group-data-[collapsible=icon]:top-1',
-            'group-data-[collapsible=icon]:size-2 group-data-[collapsible=icon]:min-w-0 group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:text-[0px]',
+            'group-data-[collapsible=icon]:size-2 group-data-[collapsible=icon]:min-w-0',
+            'group-data-[collapsible=icon]:overflow-hidden group-data-[collapsible=icon]:p-0 group-data-[collapsible=icon]:text-[0px]',
           )}
         >
           {item.badge > 99 ? '99+' : item.badge}
@@ -178,7 +181,7 @@ const AppSidebar = () => {
   return (
     <Sidebar collapsible="icon" className="border-r">
       {/* Header */}
-      <SidebarHeader className="pb-2">
+      <SidebarHeader className="pb-2 border-b">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -199,8 +202,6 @@ const AppSidebar = () => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
-
-      <SidebarSeparator className="mx-2" />
 
       {/* Content */}
       <SidebarContent className="px-2 py-2">
@@ -266,7 +267,6 @@ const AppSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-
       {/* Footer – User */}
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>
@@ -417,7 +417,6 @@ const AppSidebar = () => {
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
-
       <SidebarRail />
     </Sidebar>
   );

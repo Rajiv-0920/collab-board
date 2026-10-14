@@ -3,8 +3,44 @@ import { baseApi } from './baseApi';
 export const boardsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getBoards: builder.query({
-      query: ({ page = 1, limit = 9 } = {}) =>
-        `/boards?page=${page}&limit=${limit}`,
+      query: ({
+        page = 1,
+        limit = 9,
+        search,
+        type, // 'all' | 'mine' | 'shared'
+        role, // 'owner' | 'editor' | 'viewer'
+        sort, // 'updated' | 'created' | 'name_asc'
+        dateField, // 'created' | 'updated'
+        from,
+        to,
+      } = {}) => {
+        // Only send params that actually have a value
+        const params = {
+          page,
+          limit,
+          search,
+          type,
+          role,
+          sort,
+          dateField,
+          from,
+          to,
+        };
+
+        Object.keys(params).forEach((key) => {
+          const value = params[key];
+          if (
+            value === undefined ||
+            value === null ||
+            value === '' ||
+            value === 'all'
+          ) {
+            delete params[key];
+          }
+        });
+
+        return { url: '/boards', params };
+      },
       transformResponse: (response) => response.data,
       providesTags: ['Boards'],
     }),
