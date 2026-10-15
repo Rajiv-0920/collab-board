@@ -156,7 +156,7 @@ const AppSidebar = () => {
   const isActive = (url) =>
     location.pathname === url || location.pathname.startsWith(`${url}/`);
 
-  const userInitials = avatarInitials() || 'U';
+  const userInitials = avatarInitials(user.name) || 'U';
 
   const handleLogout = async () => {
     try {
