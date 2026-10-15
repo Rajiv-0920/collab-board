@@ -13,7 +13,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { pluralize, timeAgo, getInitials } from './utils';
+import { timeAgo } from './utils';
+import { avatarInitials } from '@/lib/avatarInitials';
+import { pluralize } from '@/lib/pluralize';
 
 /* -------------------------------- Helpers --------------------------------- */
 
@@ -126,7 +128,7 @@ const BoardCard = ({ board, onEdit, canManage = false, onDelete }) => {
                 <AvatarImage src={member.avatarUrl} alt={member.name} />
               )}
               <AvatarFallback className="bg-muted text-[9px] font-medium text-muted-foreground">
-                {getInitials(member.name)}
+                {avatarInitials(member.name)}
               </AvatarFallback>
             </Avatar>
           ))}

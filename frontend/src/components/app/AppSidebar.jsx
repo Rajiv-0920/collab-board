@@ -53,6 +53,7 @@ import { setCredentials } from '@/store/authSlice';
 import { baseApi } from '@/services/baseApi';
 import { useGetInvitesQuery } from '@/services/inviteApi';
 import { useGetBoardsQuery } from '@/services/boardsApi';
+import { avatarInitials } from '@/lib/avatarInitials';
 
 // ---------------------------------------------------------------------------
 // Shared nav button style
@@ -155,13 +156,7 @@ const AppSidebar = () => {
   const isActive = (url) =>
     location.pathname === url || location.pathname.startsWith(`${url}/`);
 
-  const userInitials =
-    user?.name
-      ?.split(' ')
-      .map((n) => n[0])
-      .join('')
-      .slice(0, 2)
-      .toUpperCase() || 'U';
+  const userInitials = avatarInitials() || 'U';
 
   const handleLogout = async () => {
     try {
@@ -267,6 +262,7 @@ const AppSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
       {/* Footer – User */}
       <SidebarFooter className="border-t p-2">
         <SidebarMenu>

@@ -1,7 +1,6 @@
 import { useSelector, useDispatch } from 'react-redux';
 import { selectCurrentUser } from '../store/authSlice';
-
-import DashboardHeader from '../components/dashboard/DashboardHeader';
+import { toast } from '@/components/ui/toast';
 
 import {
   useCreateBoardMutation,
@@ -16,16 +15,16 @@ import {
   useDeclineInviteMutation,
 } from '../services/inviteApi';
 import { inviteApi } from '../services/inviteApi';
+import DashboardHeader from '../components/dashboard/DashboardHeader';
 import DashboardStats from '@/components/dashboard/DashboardStats';
 import BoardDialog from '@/components/dashboard/BoardDialog';
-import { toast } from '@/components/ui/toast';
 import BoardsErrorState from '../components/dashboard/BoardsErrorState';
-import PendingInvitations from './PendingInvitations';
-
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import PendingInvitations from '../components/dashboard/PendingInvitations';
 import BoardsSection, {
   DEFAULT_FILTERS,
 } from '../components/dashboard/BoardsSection';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const BOARDS_PER_PAGE = 9;
 

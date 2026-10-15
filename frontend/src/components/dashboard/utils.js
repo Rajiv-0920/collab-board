@@ -11,18 +11,6 @@ const RELATIVE_UNITS = [
   ['minute', 60],
 ];
 
-export const getInitials = (name = '') =>
-  name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join('')
-    .toUpperCase() || '?';
-
-export const pluralize = (count, singular) =>
-  `${count} ${count === 1 ? singular : `${singular}s`}`;
-
 export const timeAgo = (date) => {
   const parsed = date ? new Date(date) : null;
   if (!parsed || Number.isNaN(parsed.getTime())) return 'Recently';

@@ -9,8 +9,6 @@ import {
 } from 'lucide-react';
 
 import { useGetBoardsQuery } from '../../services/boardsApi';
-import { useSelector } from 'react-redux';
-import { selectCurrentUser } from '@/store/authSlice';
 
 const DashboardStats = () => {
   const {

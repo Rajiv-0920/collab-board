@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { buttonVariants } from '@/components/ui/button';
+import { pluralize } from '@/lib/pluralize';
 import { cn } from '@/lib/utils';
 
 import {
@@ -19,9 +20,6 @@ import {
   TriangleAlert,
   Users,
 } from 'lucide-react';
-
-const pluralize = (count, singular) =>
-  `${count} ${count === 1 ? singular : `${singular}s`}`;
 
 const Count = ({ icon: Icon, children }) => (
   <span className="flex items-center gap-1.5">

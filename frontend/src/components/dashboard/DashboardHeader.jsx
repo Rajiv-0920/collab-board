@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '../ui/button';
-import { getStunningGreeting } from '../../library/getGreeting';
+import { getStunningGreeting } from '@/lib/getGreeting';
 
 export const DashboardHeader = ({ name, onCreateBoard, className = '' }) => {
   const [greetingData, setGreetingData] = useState(() =>
