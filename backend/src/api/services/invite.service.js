@@ -5,6 +5,15 @@ import User from '../models/user.model.js';
 import Board from '../models/board.model.js';
 
 export const getInvitesService = async (req) => {
+  await InviteBoard.updateMany(
+    {
+      status: 'pending',
+      expiresAt: { $lte: new Date() },
+    },
+    {
+      $set: { status: 'expired' },
+    },
+  );
   const invites = await InviteBoard.find({ inviteeId: req.user._id })
     .sort({
       createdAt: -1,
@@ -15,6 +24,15 @@ export const getInvitesService = async (req) => {
 };
 
 export const acceptInviteService = async (req, inviteId) => {
+  await InviteBoard.updateMany(
+    {
+      status: 'pending',
+      expiresAt: { $lte: new Date() },
+    },
+    {
+      $set: { status: 'expired' },
+    },
+  );
   const session = await mongoose.startSession();
 
   let expiredInvite = false;

@@ -76,7 +76,6 @@ const Invitations = () => {
 
   const filteredInvitations = useMemo(() => {
     const query = search.trim().toLowerCase();
-
     return invitations.filter((invitation) => {
       const matchesStatus = invitation.status === activeTab;
       const matchesSearch =
