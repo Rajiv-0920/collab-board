@@ -2,6 +2,7 @@ import { Outlet, useNavigate } from 'react-router';
 import { useGetMeQuery } from '../services/userApi';
 import { useEffect } from 'react';
 import PageLoader from '../components/utils/PageLoader';
+import { Toaster } from '@/components/ui/toast';
 
 const AuthLayout = () => {
   const {
@@ -31,6 +32,7 @@ const AuthLayout = () => {
       <main className="grid min-h-svh place-items-center p-6">
         <div className="w-full max-w-md">
           <Outlet />
+          <Toaster />
         </div>
       </main>
     </div>

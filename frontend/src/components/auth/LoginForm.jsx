@@ -19,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Loader2, ClipboardList } from 'lucide-react';
+import { toast } from '@/components/ui/toast';
 
 const LoginForm = () => {
   const [user, setUser] = useState({
@@ -53,6 +54,10 @@ const LoginForm = () => {
 
     try {
       const userData = await login(user).unwrap();
+      sessionStorage.setItem(
+        'login_success',
+        `Welcome back, ${userData.user.name}!`,
+      );
       dispatch(setCredentials(userData));
     } catch (err) {
       console.error('Login failed:', err);

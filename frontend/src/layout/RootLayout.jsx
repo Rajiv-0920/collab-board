@@ -1,6 +1,12 @@
-import { Outlet, useNavigate } from 'react-router';
+import { Outlet, ScrollRestoration, useNavigate } from 'react-router';
 import { useGetMeQuery } from '../services/userApi';
 import { useEffect } from 'react';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
+
+import AppHeader from '@/components/app/AppHeader';
+import AppSidebar from '@/components/app/AppSidebar';
+import { Toaster } from '@/components/ui/toast';
+import PageLoader from '@/components/utils/PageLoader';
 
 const RootLayout = () => {
   const { data: me, isLoading: isMeLoading } = useGetMeQuery();
@@ -15,7 +21,7 @@ const RootLayout = () => {
 
   // Show a loading state while RTK Query fetches the user data
   if (isMeLoading) {
-    return <div>Loading...</div>;
+    return <PageLoader />;
   }
 
   // If there's no user after loading, render nothing while useEffect handles the redirect
@@ -24,9 +30,19 @@ const RootLayout = () => {
   }
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
-      <Outlet />
-    </div>
+    <SidebarProvider>
+      <AppSidebar />
+
+      <SidebarInset>
+        <AppHeader />
+
+        <main className="min-w-0 flex-1 p-4 md:p-6 bg-background">
+          <Outlet />
+          <Toaster />
+          <ScrollRestoration />
+        </main>
+      </SidebarInset>
+    </SidebarProvider>
   );
 };
 

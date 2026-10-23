@@ -7,18 +7,210 @@ import User from '../models/user.model.js';
 import Comment from '../models/comment.model.js';
 import Activity from '../models/activity.model.js';
 import InviteBoard from '../models/inviteBoard.model.js';
+import {
+  escapeRegex,
+  BOARD_TYPES,
+  ROLES,
+  SORT_OPTIONS,
+  parseDate,
+} from '../library/boardHelpers.js';
 
 export const getBoardService = async (req) => {
-  const boardMember = await BoardMember.find({ userId: req.user._id });
-  if (!boardMember) {
-    const error = new Error('Board member not found');
-    error.status = 404;
-    throw error;
+  const userId = req.user._id;
+
+  const page = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+  const limit = Math.min(
+    50,
+    Math.max(1, Number.parseInt(req.query.limit, 10) || 9),
+  );
+
+  const searchQuery = (req.query.search || req.query.q || '').trim();
+
+  const boardType = BOARD_TYPES.includes(req.query.type)
+    ? req.query.type
+    : 'all';
+
+  const role = ROLES.includes(req.query.role) ? req.query.role : null;
+
+  const selectedSort = SORT_OPTIONS[req.query.sort] || SORT_OPTIONS.updated;
+
+  // Date range (optional): ?dateField=created&from=2026-10-01&to=2026-10-14
+  const dateField =
+    req.query.dateField === 'created' ? 'createdAt' : 'updatedAt';
+  const fromDate = parseDate(req.query.from);
+  const toDate = parseDate(req.query.to, true);
+
+  // ---------- 2. Which boards does this user belong to? ----------
+  // One query that also gives us the user's role on each board.
+  const memberships = await BoardMember.find({ userId })
+    .select('boardId role')
+    .lean();
+
+  const boardIds = memberships.map((m) => m.boardId);
+
+  // boardId (string) -> role, so we can tell the frontend "your role here"
+  const roleByBoard = new Map(
+    memberships.map((m) => [m.boardId.toString(), m.role]),
+  );
+
+  // ---------- 3. Build the filter ----------
+  // We collect conditions in an array and join them with $and.
+  // Every condition must be true for a board to be returned.
+  const conditions = [];
+
+  // 3a. Role filter decides which boards we are even allowed to look at
+  if (role === 'owner') {
+    conditions.push({ ownerId: userId });
+  } else if (role) {
+    // editor / viewer: only boards where my membership has that role
+    const idsWithRole = memberships
+      .filter((m) => m.role === role)
+      .map((m) => m.boardId);
+    conditions.push({ _id: { $in: idsWithRole } });
   }
-  const board = await Board.find({
-    _id: { $in: boardMember.map((m) => m.boardId) },
+
+  // Always restrict to boards the user belongs to (security)
+  conditions.push({ _id: { $in: boardIds } });
+
+  // 3b. Board type: All / My Boards / Shared with Me
+  if (boardType === 'mine') {
+    conditions.push({ ownerId: userId });
+  } else if (boardType === 'shared') {
+    conditions.push({ ownerId: { $ne: userId } });
+  }
+
+  // 3c. Search by title or description (case-insensitive)
+  if (searchQuery) {
+    const regex = { $regex: escapeRegex(searchQuery), $options: 'i' };
+
+    conditions.push({
+      $or: [{ title: regex }, { description: regex }],
+    });
+  }
+
+  // 3d. Date range
+  if (fromDate || toDate) {
+    const range = {};
+    if (fromDate) range.$gte = fromDate;
+    if (toDate) range.$lte = toDate;
+    conditions.push({ [dateField]: range });
+  }
+
+  const boardQuery = { $and: conditions };
+
+  // ---------- 4. Counts + pagination math ----------
+  // totalBoards = boards matching ALL current filters (drives pagination)
+  const totalBoards = await Board.countDocuments(boardQuery);
+
+  const totalPages = Math.ceil(totalBoards / limit) || 1;
+  const currentPage = Math.min(page, totalPages);
+  const skip = (currentPage - 1) * limit;
+
+  // ---------- 5. Dashboard stats (NOT affected by filters) ----------
+  const [myBoards, totalLists, totalTasks, totalMembers, uniqueMemberIds] =
+    await Promise.all([
+      Board.countDocuments({ ownerId: userId, _id: { $in: boardIds } }),
+      List.countDocuments({ boardId: { $in: boardIds } }),
+      Card.countDocuments({ boardId: { $in: boardIds } }),
+      BoardMember.countDocuments({ boardId: { $in: boardIds } }),
+      BoardMember.distinct('userId', { boardId: { $in: boardIds } }),
+    ]);
+
+  const stats = {
+    totalBoards: boardIds.length, // all boards I belong to (unfiltered)
+    matchingBoards: totalBoards, // boards matching the current filters
+    myBoards,
+    sharedBoards: boardIds.length - myBoards,
+    totalLists,
+    totalTasks,
+    totalMembers,
+    totalUniqueMembers: uniqueMemberIds.length,
+  };
+
+  const pagination = {
+    currentPage,
+    limit,
+    totalBoards, // matching the filters
+    totalPages,
+    hasNextPage: currentPage < totalPages,
+    hasPrevPage: currentPage > 1,
+  };
+
+  // Echo back what was applied so the UI can show/clear filter chips
+  const filters = {
+    search: searchQuery,
+    type: boardType,
+    role,
+    sort: SORT_OPTIONS[req.query.sort] ? req.query.sort : 'updated',
+    dateField: dateField === 'createdAt' ? 'created' : 'updated',
+    from: fromDate,
+    to: toDate,
+  };
+
+  // ---------- 6. Fetch this page of boards ----------
+  let query = Board.find(boardQuery)
+    .sort(selectedSort)
+    .skip(skip)
+    .limit(limit)
+    .populate('ownerId', 'name avatarUrl') // only safe fields, no email/password
+    .lean();
+
+  // Make A-Z sorting case-insensitive ("apple" and "Banana" sort correctly)
+  if (req.query.sort === 'name_asc' || req.query.sort === 'name_desc') {
+    query = query.collation({ locale: 'en', strength: 2 });
+  }
+
+  const boards = await query;
+
+  const currentBoardIds = boards.map((board) => board._id);
+
+  if (currentBoardIds.length === 0) {
+    return {
+      boards: [],
+      stats,
+      pagination: { ...pagination, hasNextPage: false },
+      filters,
+    };
+  }
+
+  // ---------- 7. Fetch children only for boards on this page ----------
+  const [allBoardLists, allBoardTasks, allBoardMembers] = await Promise.all([
+    List.find({ boardId: { $in: currentBoardIds } }).lean(),
+    Card.find({ boardId: { $in: currentBoardIds } }).lean(),
+    BoardMember.find({ boardId: { $in: currentBoardIds } })
+      .populate({ path: 'userId', select: 'name avatarUrl' })
+      .lean(),
+  ]);
+
+  // ---------- 8. Attach summary + my role to each board ----------
+  const boardsWithSummary = boards.map((board) => {
+    const boardId = board._id.toString();
+
+    const boardMembers = allBoardMembers.filter(
+      (member) => member.boardId.toString() === boardId,
+    );
+    const boardLists = allBoardLists.filter(
+      (list) => list.boardId.toString() === boardId,
+    );
+    const boardTasks = allBoardTasks.filter(
+      (task) => task.boardId.toString() === boardId,
+    );
+
+    const isOwner = board.ownerId?._id?.toString() === userId.toString();
+
+    return {
+      ...board,
+      myRole: isOwner ? 'owner' : roleByBoard.get(boardId) || null,
+      summary: {
+        membersPreview: boardMembers.slice(0, 4),
+        memberCount: boardMembers.length,
+        taskCount: boardTasks.length,
+        listCount: boardLists.length,
+      },
+    };
   });
-  return board;
+
+  return { boards: boardsWithSummary, stats, pagination, filters };
 };
 
 export const getBoardDetailsService = async (req, boardId, currentUserId) => {

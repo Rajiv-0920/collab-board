@@ -17,7 +17,14 @@ const io = new Server(server, {
 io.use((socket, next) => {
   try {
     const cookieHeader = socket.handshake.headers.cookie;
-    const token = cookieHeader ? cookieHeader.split('=')[1] : null;
+
+    if (!cookieHeader) {
+      console.log('No cookies found in handshake headers');
+      return;
+    }
+
+    const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);
+    const token = match ? decodeURIComponent(match[1]) : null;
 
     if (!token) {
       return next(new Error('Authentication required'));

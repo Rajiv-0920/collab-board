@@ -9,7 +9,7 @@ import {
 import { useSelector } from 'react-redux';
 import { selectCurrentUser } from '../../store/authSlice';
 import { Draggable } from '@hello-pangea/dnd';
-import { formatDate } from '../../library/formatDate';
+import { formatDate } from '@/lib/formatDate';
 
 const BoardCard = ({
   card,
