@@ -4,9 +4,14 @@ import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Bell } from 'lucide-react';
+import { useGetBoardByIdQuery } from '@/services/boardsApi';
 
 const AppHeader = () => {
   const location = useLocation();
+  const boardId = location.pathname.split('/')[2];
+  const { data: board, isLoading } = useGetBoardByIdQuery(boardId, {
+    skip: !boardId,
+  });
 
   let title = location.pathname
     .replace(/^\//, '')
@@ -14,7 +19,7 @@ const AppHeader = () => {
     .replace(/^(\w)/, (_, c) => c.toUpperCase());
 
   if (location.pathname.startsWith('/boards/')) {
-    title = 'Board';
+    title = isLoading ? 'Loading... ' : `${board.title}`;
   }
 
   return (
@@ -23,7 +28,11 @@ const AppHeader = () => {
 
       <div className="h-5 w-px bg-border" />
 
-      <h1 className="text-sm font-medium">{title}</h1>
+      <h1
+        className={`text-sm font-medium ${isLoading ? `text-muted-foreground` : ''}`}
+      >
+        {title}
+      </h1>
 
       <div className="ml-auto flex items-center gap-2">
         <div className="relative hidden w-64 md:block">
