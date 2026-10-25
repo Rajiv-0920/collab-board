@@ -11,12 +11,14 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 
-import { useGetBoardsQuery } from '@/services/boardsApi';
+import { useGetBoardByIdQuery, useGetBoardsQuery } from '@/services/boardsApi';
 
 const AppHeader = () => {
   const location = useLocation();
+  const boardId = location.pathname.split('/')[2];
   const [search, setSearch] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const { data: board } = useGetBoardByIdQuery(boardId);
 
   const { data: boardsResponse, isLoading } = useGetBoardsQuery();
 
@@ -30,12 +32,7 @@ const AppHeader = () => {
     ? boards.filter((board) => board.title?.toLowerCase().includes(query))
     : [];
 
-  const boardId = location.pathname.split('/')[2];
-
-  let title = location.pathname
-    .replace(/^\//, '')
-    .replace(/\//g, ' ')
-    .replace(/^(\w)/, (_, c) => c.toUpperCase());
+  let title = board?.title;
 
   return (
     <header className="flex h-14 items-center gap-3 border-b px-4">

@@ -10,8 +10,8 @@ import Board from './pages/Board';
 import Profile from './pages/Profile';
 import ProtectedRoute from './layout/ProtectedRoute';
 import Invitations from './pages/Invitations';
-import Settings from './pages/Settings';
 import Boards from './pages/Boards';
+import SettingsPage from './pages/SettingsPage';
 
 const router = createBrowserRouter([
   {
@@ -48,7 +48,7 @@ const router = createBrowserRouter([
           },
           {
             path: 'settings',
-            element: <Settings />,
+            element: <SettingsPage />,
           },
         ],
       },

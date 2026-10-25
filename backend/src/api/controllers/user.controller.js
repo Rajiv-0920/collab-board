@@ -22,3 +22,22 @@ export const updateProfile = async (req, res, next) => {
     next(error);
   }
 };
+
+export const updatePassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await userService.updatePassword(req, {
+      currentPassword,
+      newPassword,
+    });
+    return sendResponse(
+      res,
+      200,
+      true,
+      'Password updated successfully',
+      result,
+    );
+  } catch (error) {
+    next(error);
+  }
+};
