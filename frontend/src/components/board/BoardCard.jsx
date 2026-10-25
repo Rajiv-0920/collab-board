@@ -1,331 +1,408 @@
 import { useState } from 'react';
-import { useParams } from 'react-router';
-import { useGetBoardDetailsQuery } from '../../services/boardsApi';
-import { useDeleteCardMutation } from '../../services/cardApi';
-import {
-  useCreateCommentMutation,
-  useDeleteCommentMutation,
-} from '../../services/commentApi';
-import { useSelector } from 'react-redux';
-import { selectCurrentUser } from '../../store/authSlice';
+import { createPortal } from 'react-dom';
 import { Draggable } from '@hello-pangea/dnd';
-import { formatDate } from '@/lib/formatDate';
+import {
+  CalendarDays,
+  ChevronDown,
+  ChevronUp,
+  MessageSquare,
+  MoreHorizontal,
+  Pencil,
+  Send,
+  Trash2,
+} from 'lucide-react';
 
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { cn } from '@/lib/utils';
+import { AvatarStack } from './BoardParts';
+import { DUE_TONES, getDueStatus, labelStyle } from './boardUtils';
+import { timeAgo } from '../dashboard/utils';
+
+/**
+ * While dragging, `@hello-pangea/dnd` positions the card with
+ * `position: fixed`. Any ancestor with transform / filter / backdrop-filter /
+ * contain turns that into "fixed relative to the ancestor", which makes the
+ * card appear far from the cursor. Rendering the dragged card in a portal on
+ * <body> makes it immune to whatever the surrounding layout does.
+ *
+ * Set this to false if your dark-mode / theme CSS variables are scoped to a
+ * wrapper element instead of <html> or <body>.
+ */
+const PORTAL_WHILE_DRAGGING = true;
+
+const getId = (value) => String(value?._id ?? value?.id ?? value ?? '');
+
+/**
+ * Presentational card. All data changes go through callbacks owned by Board,
+ * so the card makes no API calls and subscribes to no queries.
+ *
+ * The whole top section is the drag handle (click opens the card, drag moves
+ * it). The comments panel sits outside the handle so text selection and the
+ * comment input never start a drag.
+ */
 const BoardCard = ({
   card,
-  setIsUpdate,
-  setCardBody,
-  updateCard,
-  listIndex,
   cardIndex,
-  list,
+  isFirst = false,
+  isLast = false,
+  canEdit = false,
+  currentUserId = '',
+  isOwner = false,
+  onOpen,
+  onDelete,
+  onMove,
+  onAddComment,
+  onDeleteComment,
 }) => {
-  const { boardId } = useParams();
-  const {
-    data: board,
-    refetch,
-    isLoading: isBoardLoading,
-  } = useGetBoardDetailsQuery(boardId);
-  const [deleteCard, { isLoading: isLoadingDeleteCard }] =
-    useDeleteCardMutation();
-
-  const [createComment, { isLoading: isLoadingCreateComment }] =
-    useCreateCommentMutation();
-  const [deleteComment, { isLoading: isLoadingDeleteComment }] =
-    useDeleteCommentMutation();
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState('');
-  const currentUser = useSelector(selectCurrentUser);
+  const [isPostingComment, setIsPostingComment] = useState(false);
 
-  const isAbleToUpdate = ['owner', 'editor'].includes(board?.myRole);
+  const labels = card.labels ?? [];
+  const assignees = card.assigneeIds ?? [];
+  const comments = card.comments ?? [];
 
-  // Due date is overdue if it's in the past
-  const isOverdue = card.dueDate && new Date(card.dueDate) < new Date();
+  const due = getDueStatus(card.dueDate);
 
-  function moveCardUp({ cards }) {
-    const card = cards[cardIndex];
-    const prevCard = cards[cardIndex - 1];
-    const beforePrevCard = cards[cardIndex - 2];
+  const isOverdue =
+    Boolean(card.dueDate) &&
+    new Date(card.dueDate).getTime() < Date.now() &&
+    new Date(card.dueDate).toDateString() !== new Date().toDateString();
 
-    if (!prevCard) return; // already at the top
+  const hasFooter =
+    Boolean(due) || assignees.length > 0 || canEdit || comments.length > 0;
 
-    updateCard({
-      boardId,
-      listId: list._id,
-      cardId: card._id,
-      cardTitle: card.title,
-      prevOrder: beforePrevCard ? beforePrevCard.order : null,
-      nextOrder: prevCard.order,
-    });
-  }
-
-  function moveCardDown({ cards }) {
-    const card = cards[cardIndex];
-    const nextCard = cards[cardIndex + 1]; // card currently below it
-    const afterNextCard = cards[cardIndex + 2]; // card after that
-
-    if (!nextCard) return; // already at the bottom, nothing to do
-
-    updateCard({
-      boardId,
-      listId: list._id,
-      cardId: card._id,
-      cardTitle: card.title,
-      prevOrder: nextCard.order,
-      nextOrder: afterNextCard ? afterNextCard.order : null,
-    });
-  }
-
-  const handleUpdate = () => {
-    setIsUpdate(true);
-    setCardBody({
-      id: card._id,
-      title: card.title,
-      description: card.description,
-      dueDate: card.dueDate,
-      labels: card.labels,
-      version: card.version,
-      assigneeIds: card.assigneeIds,
-    });
+  // Open on click, but ignore clicks on inner controls and on events that
+  // bubble up from the dropdown menu (rendered in a portal).
+  const handleCardClick = (event) => {
+    // Viewers can inspect the card on the board, but must not open the editor sheet.
+    if (!canEdit) return;
+    if (!event.currentTarget.contains(event.target)) return;
+    if (event.target.closest('button, a, input, textarea')) return;
+    onOpen?.(card);
   };
 
-  const handleCommentSubmit = (e) => {
-    e.preventDefault();
-    if (!commentText.trim()) return;
+  const handleCardKeyDown = (event) => {
+    if (!canEdit) return;
+    if (event.target !== event.currentTarget) return;
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      onOpen?.(card);
+    }
+  };
 
-    createComment({
-      boardId,
-      listId: list._id,
-      cardId: card._id,
-      text: commentText,
-    });
+  const handleCommentSubmit = async (event) => {
+    event.preventDefault();
 
-    setCommentText(''); // Clear input after submission
+    const text = commentText.trim();
+    if (!text || isPostingComment || !onAddComment) return;
+
+    setIsPostingComment(true);
+    try {
+      await onAddComment(card, text);
+      setCommentText('');
+      setShowComments(true);
+    } catch {
+      // The parent shows the error and keeps the draft text.
+    } finally {
+      setIsPostingComment(false);
+    }
+  };
+
+  const handleDeleteComment = async (comment) => {
+    try {
+      await onDeleteComment?.(card, comment);
+    } catch {
+      // The parent shows the error.
+    }
   };
 
   return (
     <Draggable
-      draggableId={card._id}
+      draggableId={String(card._id)}
       index={cardIndex}
-      isDragDisabled={!isAbleToUpdate}
+      isDragDisabled={!canEdit}
     >
-      {(provided, snapshot) => (
-        <div
-          ref={provided.innerRef}
-          {...provided.draggableProps}
-          {...provided.dragHandleProps}
-          style={{
-            ...provided.draggableProps.style,
-            background: 'white',
-            padding: '10px',
-            marginBottom: '8px',
-            borderRadius: '4px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-          }}
-        >
-          {/* Main Card Header / Content */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
+      {(provided, snapshot) => {
+        const content = (
+          <article
+            ref={provided.innerRef}
+            {...provided.draggableProps}
+            style={provided.draggableProps.style}
+            className={cn(
+              'group/card relative rounded-xl border border-border/70',
+              'bg-card text-card-foreground shadow-xs',
+              // Keep transform/position fully controlled by the dnd library.
+              // Transform transitions or scale/rotation make the card lag
+              // behind the pointer during a drag.
+              'transition-[box-shadow,border-color] duration-150',
+              'hover:border-primary/40 hover:shadow-md',
+              snapshot.isDragging &&
+                'z-50 border-primary/60 shadow-2xl ring-2 ring-primary/20',
+            )}
           >
-            <span>{card.title}</span>
-            <div>
-              {isAbleToUpdate && (
-                <>
-                  <button
-                    onClick={() =>
-                      moveCardUp({ cards: board.lists[listIndex].cards })
-                    }
-                  >
-                    👆🏼
-                  </button>
-                  <button
-                    onClick={() =>
-                      moveCardDown({ cards: board.lists[listIndex].cards })
-                    }
-                  >
-                    👇🏼
-                  </button>
-                  &nbsp; &nbsp;
-                  <button onClick={handleUpdate}>Edit</button>
-                  <button
-                    onClick={() =>
-                      deleteCard({
-                        boardId,
-                        listId: card.listId,
-                        cardId: card._id,
-                      })
-                    }
-                    disabled={isLoadingDeleteCard}
-                  >
-                    Delete
-                  </button>
-                </>
-              )}
-            </div>
-          </div>
-
-          {/* Description */}
-          {card.description && (
-            <p style={{ margin: '6px 0', fontSize: '12px', color: '#555' }}>
-              {card.description}
-            </p>
-          )}
-
-          {/* Labels */}
-          {card.labels?.length > 0 && (
+            {/* Drag handle + clickable body */}
             <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '4px',
-                marginTop: '6px',
-              }}
-            >
-              {card.labels.map((label) => (
-                <span
-                  key={label}
-                  style={{
-                    fontSize: '11px',
-                    padding: '2px 6px',
-                    borderRadius: '10px',
-                    background: '#e8f0fe',
-                    color: '#1a56db',
-                  }}
-                >
-                  {label}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* Due date + assignees */}
-          {(card.dueDate || card.assigneeIds?.length > 0) && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                marginTop: '6px',
-                fontSize: '11px',
-              }}
-            >
-              {card.dueDate ? (
-                <span style={{ color: isOverdue ? '#d93025' : '#666' }}>
-                  📅 {formatDate(card.dueDate)}
-                  {isOverdue && ' (overdue)'}
-                </span>
-              ) : (
-                <span />
+              {...(provided.dragHandleProps ?? { tabIndex: 0, role: 'button' })}
+              onClick={handleCardClick}
+              onKeyDown={handleCardKeyDown}
+              className={cn(
+                'relative rounded-xl px-3 pb-3 pt-3 outline-none',
+                'focus-visible:ring-2 focus-visible:ring-ring',
+                canEdit
+                  ? 'cursor-grab active:cursor-grabbing'
+                  : 'cursor-pointer',
               )}
-
-              {card.assigneeIds?.length > 0 && (
-                <span style={{ color: '#666' }}>
-                  👤 {card?.assigneeIds.map((assignTo) => assignTo.name + ', ')}
-                </span>
-              )}
-            </div>
-          )}
-
-          {/* Comment Toggle Button */}
-          <div style={{ marginTop: '8px' }}>
-            <button
-              onClick={() => setShowComments(!showComments)}
-              style={{
-                fontSize: '12px',
-                background: 'none',
-                border: 'none',
-                color: '#007bff',
-                cursor: 'pointer',
-                padding: 0,
-              }}
             >
-              💬 Comments ({card.comments?.length || 0}){' '}
-              {showComments ? '▲' : '▼'}
-            </button>
-          </div>
-
-          {/* Inline Comment Section */}
-          {showComments && (
-            <div
-              style={{
-                marginTop: '8px',
-                borderTop: '1px solid #eee',
-                paddingTop: '8px',
-              }}
-            >
-              {/* Comment Form */}
-              <form
-                onSubmit={handleCommentSubmit}
-                style={{ display: 'flex', gap: '4px', marginBottom: '8px' }}
-              >
-                <input
-                  type="text"
-                  placeholder="Write a comment..."
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  style={{ flex: 1, padding: '4px 8px', fontSize: '12px' }}
-                />
-                <button type="submit" style={{ fontSize: '12px' }}>
-                  Post
-                </button>
-              </form>
-
-              {/* Comment List */}
-              <ul
-                style={{
-                  listStyle: 'none',
-                  padding: 0,
-                  margin: 0,
-                  fontSize: '12px',
-                  maxHeight: '100px',
-                  overflowY: 'auto',
-                }}
-              >
-                {card.comments && card.comments.length > 0 ? (
-                  card.comments.map((comment) => (
-                    <li
-                      key={comment._id}
-                      style={{
-                        padding: '4px 0',
-                        borderBottom: '1px solid #f9f9f9',
-                      }}
-                    >
-                      {comment.text} &nbsp;&nbsp;&nbsp;&nbsp;
-                      <span style={{ color: '#888' }}>
-                        {comment.userId.name}
-                        {comment.createdAt &&
-                          ` | ${formatDate(comment.createdAt)}`}
-                      </span>
-                      {(comment.userId._id === currentUser._id ||
-                        board.myRole === 'owner') && (
-                        <button
-                          onClick={() =>
-                            deleteComment({
-                              boardId,
-                              listId: list._id,
-                              cardId: card._id,
-                              commentId: comment._id,
-                            })
-                          }
-                        >
-                          Delete
-                        </button>
+              {labels.length > 0 && (
+                <div className="mb-2 flex flex-wrap gap-1 pr-7">
+                  {labels.map((label) => (
+                    <Badge
+                      key={label}
+                      variant="secondary"
+                      className={cn(
+                        'h-5 rounded-full px-2 text-[10px] font-semibold uppercase tracking-wide',
+                        labelStyle(label),
                       )}
-                    </li>
-                  ))
-                ) : (
-                  <li style={{ color: '#888', fontStyle: 'italic' }}>
-                    No comments yet.
-                  </li>
+                    >
+                      {label}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+
+              <h4
+                className={cn(
+                  'break-words text-sm font-medium leading-snug',
+                  labels.length === 0 && 'pr-7',
                 )}
-              </ul>
+              >
+                {card.title}
+              </h4>
+
+              {card.description && (
+                <p className="mt-1.5 line-clamp-2 break-words text-xs leading-5 text-muted-foreground">
+                  {card.description}
+                </p>
+              )}
+
+              {hasFooter && (
+                <div className="mt-3 flex flex-wrap items-center gap-1.5">
+                  {due && (
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
+                        DUE_TONES[due.tone],
+                        isOverdue && 'font-semibold',
+                      )}
+                    >
+                      <CalendarDays className="size-3" aria-hidden="true" />
+                      {due.label}
+                    </span>
+                  )}
+
+                  {(comments.length > 0 || canEdit) && (
+                    <button
+                      type="button"
+                      onClick={() => setShowComments((value) => !value)}
+                      className={cn(
+                        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
+                        'transition-colors hover:bg-muted hover:text-foreground',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                        showComments || comments.length > 0
+                          ? 'text-foreground/80'
+                          : 'text-muted-foreground',
+                        showComments && 'bg-muted',
+                      )}
+                      aria-expanded={showComments}
+                      aria-label={`${comments.length} comments`}
+                    >
+                      <MessageSquare className="size-3" aria-hidden="true" />
+                      {comments.length}
+                    </button>
+                  )}
+
+                  {assignees.length > 0 && (
+                    <div className="ml-auto pl-1">
+                      <AvatarStack users={assignees} max={3} />
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {canEdit && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          'absolute right-1.5 top-1.5 size-7 text-muted-foreground',
+                          'opacity-0 transition-opacity hover:bg-muted hover:text-foreground',
+                          'group-hover/card:opacity-100 focus-visible:opacity-100',
+                          'data-[state=open]:opacity-100 data-[popup-open]:opacity-100',
+                          '[@media(hover:none)]:opacity-100',
+                        )}
+                        aria-label={`Actions for ${card.title}`}
+                      />
+                    }
+                  >
+                    <MoreHorizontal className="size-4" aria-hidden="true" />
+                  </DropdownMenuTrigger>
+
+                  <DropdownMenuContent align="end" className="w-44">
+                    <DropdownMenuItem onClick={() => onOpen?.(card)}>
+                      <Pencil className="mr-2 size-4" />
+                      Edit card
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      disabled={isFirst}
+                      onClick={() => onMove?.(card, 'up')}
+                    >
+                      <ChevronUp className="mr-2 size-4" />
+                      Move up
+                    </DropdownMenuItem>
+
+                    <DropdownMenuItem
+                      disabled={isLast}
+                      onClick={() => onMove?.(card, 'down')}
+                    >
+                      <ChevronDown className="mr-2 size-4" />
+                      Move down
+                    </DropdownMenuItem>
+
+                    <DropdownMenuSeparator />
+
+                    <DropdownMenuItem
+                      onClick={() => onDelete?.(card)}
+                      className="text-destructive focus:text-destructive"
+                    >
+                      <Trash2 className="mr-2 size-4" />
+                      Delete card
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Comments */}
+            {showComments && (
+              <div className="rounded-b-xl border-t border-border/70 bg-muted/30 p-3">
+                {comments.length > 0 ? (
+                  <ul className="max-h-52 space-y-3 overflow-y-auto pr-1">
+                    {comments.map((comment) => {
+                      const author =
+                        typeof comment.userId === 'object'
+                          ? comment.userId
+                          : null;
+
+                      const canDeleteComment =
+                        isOwner || getId(comment.userId) === currentUserId;
+
+                      return (
+                        <li
+                          key={comment._id}
+                          className="group/comment flex items-start gap-2"
+                        >
+                          <Avatar className="mt-0.5 size-6 shrink-0">
+                            <AvatarImage src={author?.avatarUrl} />
+                            <AvatarFallback className="text-[9px]">
+                              {(author?.name ?? 'U').slice(0, 2).toUpperCase()}
+                            </AvatarFallback>
+                          </Avatar>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-baseline gap-2">
+                              <span className="truncate text-xs font-medium">
+                                {author?.name ?? 'User'}
+                              </span>
+
+                              {comment.createdAt && (
+                                <span className="shrink-0 text-[10px] text-muted-foreground">
+                                  {timeAgo(comment.createdAt)}
+                                </span>
+                              )}
+
+                              {canDeleteComment && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteComment(comment)}
+                                  className={cn(
+                                    'ml-auto rounded p-0.5 text-muted-foreground',
+                                    'opacity-0 transition-opacity hover:text-destructive',
+                                    'group-hover/comment:opacity-100 focus-visible:opacity-100',
+                                    '[@media(hover:none)]:opacity-100',
+                                  )}
+                                  aria-label="Delete comment"
+                                >
+                                  <Trash2
+                                    className="size-3"
+                                    aria-hidden="true"
+                                  />
+                                </button>
+                              )}
+                            </div>
+
+                            <p className="mt-0.5 break-words rounded-lg rounded-tl-sm border border-border/50 bg-background px-2.5 py-1.5 text-xs leading-5">
+                              {comment.text}
+                            </p>
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                ) : (
+                  <p className="py-1 text-center text-xs text-muted-foreground">
+                    No comments yet.
+                  </p>
+                )}
+
+                <form
+                  onSubmit={handleCommentSubmit}
+                  className="mt-3 flex items-center gap-2"
+                >
+                  <Input
+                    value={commentText}
+                    onChange={(event) => setCommentText(event.target.value)}
+                    placeholder="Write a comment..."
+                    className="h-8 bg-background text-xs"
+                    maxLength={2000}
+                    disabled={isPostingComment}
+                    aria-label="Write a comment"
+                  />
+
+                  <Button
+                    type="submit"
+                    size="icon"
+                    className="size-8 shrink-0"
+                    disabled={!commentText.trim() || isPostingComment}
+                    aria-label="Post comment"
+                  >
+                    <Send className="size-3.5" />
+                  </Button>
+                </form>
+              </div>
+            )}
+          </article>
+        );
+
+        return PORTAL_WHILE_DRAGGING && snapshot.isDragging
+          ? createPortal(content, document.body)
+          : content;
+      }}
     </Draggable>
   );
 };
