@@ -339,7 +339,7 @@ export const getBoardActivityService = async ({
   // Run queries in parallel for better performance
   const [activities, total] = await Promise.all([
     Activity.find(filter)
-      .populate('userId', 'name')
+      .populate('userId', 'name avatarUrl')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limitNum)

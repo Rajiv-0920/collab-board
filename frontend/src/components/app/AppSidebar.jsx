@@ -219,31 +219,58 @@ const AppSidebar = () => {
         </SidebarGroup>
 
         {/* Recent */}
-        {recentBoards && recentBoards.length > 0 && (
+        {isBoardsLoading ? (
           <SidebarGroup className="py-1">
             <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
               Recent
             </SidebarGroupLabel>
+
             <SidebarGroupContent>
               <SidebarMenu className="gap-0.5">
-                {recentBoards.map((board) => (
-                  <SidebarMenuItem key={board.url}>
-                    <SidebarMenuButton
-                      tooltip={board.title}
-                      isActive={isActive(board.url)}
-                      className={navButtonClass}
-                      render={<Link to={board.url} />}
-                    >
-                      <Clock className="size-4 text-muted-foreground" />
-                      <span className="truncate">{board.title}</span>
-                    </SidebarMenuButton>
+                {[1, 2, 3].map((item) => (
+                  <SidebarMenuItem key={item}>
+                    <div className="flex h-8 items-center gap-2 rounded-md px-2">
+                      <Skeleton className="size-4 shrink-0 rounded-sm" />
+                      <Skeleton
+                        className={cn(
+                          'h-3.5 rounded-sm',
+                          item === 1 ? 'w-28' : item === 2 ? 'w-36' : 'w-24',
+                        )}
+                      />
+                    </div>
                   </SidebarMenuItem>
                 ))}
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
-        )}
+        ) : (
+          recentBoards &&
+          recentBoards.length > 0 && (
+            <SidebarGroup className="py-1">
+              <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">
+                Recent
+              </SidebarGroupLabel>
 
+              <SidebarGroupContent>
+                <SidebarMenu className="gap-0.5">
+                  {recentBoards.map((board) => (
+                    <SidebarMenuItem key={board.url}>
+                      <SidebarMenuButton
+                        tooltip={board.title}
+                        isActive={isActive(board.url)}
+                        className={navButtonClass}
+                        render={<Link to={board.url} />}
+                      >
+                        <Clock className="size-4 text-muted-foreground" />
+                        <span className="truncate">{board.title}</span>
+                      </SidebarMenuButton>
+                    </SidebarMenuItem>
+                  ))}
+                </SidebarMenu>
+              </SidebarGroupContent>
+            </SidebarGroup>
+          )
+        )}
         {/* Account */}
         <SidebarGroup className="py-1">
           <SidebarGroupLabel className="px-2 text-xs font-medium text-muted-foreground">

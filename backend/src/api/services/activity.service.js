@@ -18,7 +18,7 @@ export const logActivity = async ({
       entityId,
       meta,
     });
-    const populated = await entry.populate('userId', 'name avatar');
+    const populated = await entry.populate('userId', 'name avatarUrl');
     io.to(boardId).emit('activity:created', populated);
     return populated;
   } catch (error) {

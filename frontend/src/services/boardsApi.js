@@ -1,5 +1,9 @@
 import { baseApi } from './baseApi';
 
+const ACTIVITY_PAGE_SIZE = 10;
+
+const getActivityKey = (item) => item?._id ?? item?.id;
+
 export const boardsApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
     getBoards: builder.query({
@@ -54,11 +58,54 @@ export const boardsApi = baseApi.injectEndpoints({
       transformResponse: (response) => response.data,
       providesTags: ['Boards'],
     }),
+
+    /**
+     * Paginated activity feed.
+     *
+     * Call it with `{ boardId, page }`. All pages of one board share a single
+     * cache entry: page 1 replaces the list, later pages are appended
+     * (de-duplicated by id). New entries from the socket are prepended with
+     *   boardsApi.util.updateQueryData('getBoardActivity', { boardId }, ...)
+     *
+     * It deliberately has no `providesTags`: invalidating 'Boards' after every
+     * mutation would refetch the *current* page and break the merged list.
+     * Freshness comes from the socket event and from refetching when the
+     * activity sheet is opened.
+     *
+     * The response is normalised to `{ activities, pagination }`.
+     */
     getBoardActivity: builder.query({
-      query: (boardId) => `/boards/${boardId}/activity`,
-      transformResponse: (response) => response.data,
-      providesTags: ['Boards'],
+      query: ({ boardId, page = 1, limit = ACTIVITY_PAGE_SIZE }) => ({
+        url: `/boards/${boardId}/activity`,
+        params: { page, limit },
+      }),
+      transformResponse: (response) => {
+        const data = response?.data;
+        const activities = Array.isArray(data)
+          ? data
+          : (data?.activities ?? data?.items ?? []);
+
+        return { activities, pagination: data?.pagination ?? {} };
+      },
+      serializeQueryArgs: ({ endpointName, queryArgs }) =>
+        `${endpointName}(${queryArgs?.boardId})`,
+      merge: (currentCache, incoming, { arg }) => {
+        if ((arg?.page ?? 1) <= 1) return incoming;
+
+        const seen = new Set(currentCache.activities.map(getActivityKey));
+        incoming.activities.forEach((item) => {
+          if (!seen.has(getActivityKey(item))) {
+            currentCache.activities.push(item);
+          }
+        });
+        currentCache.pagination = incoming.pagination;
+        return undefined;
+      },
+      forceRefetch: ({ currentArg, previousArg }) =>
+        currentArg?.page !== previousArg?.page ||
+        currentArg?.boardId !== previousArg?.boardId,
     }),
+
     createBoard: builder.mutation({
       query: (boardData) => ({
         url: '/boards',

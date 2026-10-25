@@ -128,19 +128,6 @@ export const inviteMemberToBoard = async (req, res, next) => {
       email,
       role,
     );
-    /*
-    console.log(invitedUser);
-    {
-      boardId: new ObjectId('6abfcaa19a0425d0182497df'),
-      inviteeId: new ObjectId('6aaad34b82799b8ed0a04cad'),
-      role: 'viewer',
-      status: 'pending',
-      expiresAt: 2026-10-10T15:33:11.014Z,
-      _id: new ObjectId('6ac120375cb6c0943371586c'),
-      createdAt: 2026-10-03T15:33:11.021Z,
-      __v: 0
-    }
-    */
     await logActivity({
       boardId,
       userId: req.user._id,

@@ -22,7 +22,15 @@ export const userApi = baseApi.injectEndpoints({
       }),
       invalidatesTags: ['User'],
     }),
+    changePassword: builder.mutation({
+      query: (formData) => ({
+        url: 'user/password',
+        method: 'PATCH',
+        body: formData,
+      }),
+    }),
   }),
 });
 
-export const { useGetMeQuery, useUpdateMeMutation } = userApi;
+export const { useGetMeQuery, useUpdateMeMutation, useChangePasswordMutation } =
+  userApi;

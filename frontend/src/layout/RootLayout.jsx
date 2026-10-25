@@ -33,14 +33,18 @@ const RootLayout = () => {
     <SidebarProvider>
       <AppSidebar />
 
-      <SidebarInset>
-        <AppHeader />
+      <SidebarInset className="flex h-dvh min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        {/* Fixed header */}
+        <div className="shrink-0">
+          <AppHeader />
+        </div>
 
-        <main className="min-w-0 flex-1 p-4 md:p-6 bg-background">
+        {/* Main content area */}
+        <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overflow-x-hidden bg-background p-4 md:p-6">
           <Outlet />
-          <Toaster />
-          <ScrollRestoration />
         </main>
+        <Toaster />
+        <ScrollRestoration />
       </SidebarInset>
     </SidebarProvider>
   );
