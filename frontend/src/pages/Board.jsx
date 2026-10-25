@@ -2,22 +2,28 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { toast } from '@/components/ui/toast';
-
-import {
-  useGetBoardDetailsQuery,
-  useGetBoardActivityQuery,
-} from '../services/boardsApi';
-
+/* -------------------------------------------------------------------------- */
+/* Slice and APIs                                                                    */
+/* -------------------------------------------------------------------------- */
+import { useGetBoardDetailsQuery } from '../services/boardsApi';
 import { selectCurrentUser } from '../store/authSlice';
 
+/* -------------------------------------------------------------------------- */
+/* Library                                                                    */
+/* -------------------------------------------------------------------------- */
+import { getId } from '@/lib/ids';
+import { getErrorMessage } from '@/lib/errors';
+import describeActivity from '@/lib/describeBoardActivity';
+
+/* -------------------------------------------------------------------------- */
+/* Components                                                                    */
+/* -------------------------------------------------------------------------- */
+import BoardCanvas from '@/components/board/BoardCanvas';
+import BoardOverlays from '@/components/board/BoardOverlays';
 import BoardSkeleton from '@/components/board/BoardSkeleton';
 import BoardHeader from '@/components/board/BoardHeader';
 import AddListDialog from '@/components/board/AddListDialog';
-import { getId } from '@/lib/ids';
-import { getErrorMessage } from '@/lib/errors';
-
-import { cn } from '@/lib/utils';
+import { toast } from '@/components/ui/toast';
 
 /* -------------------------------------------------------------------------- */
 /* Hooks                                                                    */
@@ -29,8 +35,6 @@ import { useBoardMemberActions } from '@/hooks/board/useBoardMemberActions';
 import { useBoardActions } from '@/hooks/board/useBoardActions';
 import { useBoardDragAndDrop } from '@/hooks/board/useBoardDragAndDrop';
 import { useBoardSocket } from '@/hooks/board/useBoardSocket';
-import BoardCanvas from '@/components/board/BoardCanvas';
-import BoardOverlays from '@/components/board/BoardOverlays';
 import { useBoardActivity } from '@/hooks/board/useBoardActivity';
 
 /* -------------------------------------------------------------------------- */
@@ -48,115 +52,6 @@ const sortLists = (items = []) =>
 // Fields a `board:updated` socket event must never overwrite, because the
 // payload is not guaranteed to carry the fully populated versions of them.
 const PROTECTED_BOARD_KEYS = new Set(['lists', 'members', 'myRole', 'isOwner']);
-
-/**
- * Builds the toast body for an `activity:created` socket event.
- * Returns null for actions we do not announce.
- */
-const describeActivity = (payload) => {
-  const name = payload?.userId?.name || 'Someone';
-  const meta = payload?.meta ?? {};
-  const who = <strong className="font-semibold">{name}</strong>;
-
-  switch (payload?.action) {
-    // Lists
-    case 'list:created':
-      return (
-        <span>
-          {who} created the list “<strong>{meta.listTitle}</strong>”
-        </span>
-      );
-    case 'list:updated':
-      return (
-        <span>
-          {who} renamed the list from “<strong>{meta.oldListTitle}</strong>” to
-          “<strong>{meta.newListTitle}</strong>”
-        </span>
-      );
-    case 'list:deleted':
-      return (
-        <span>
-          {who} deleted the list “<strong>{meta.listTitle}</strong>”
-        </span>
-      );
-
-    // Cards
-    case 'card:created':
-      return (
-        <span>
-          {who} created card “<strong>{meta.cardTitle}</strong>” in{' '}
-          <strong>{meta.listTitle}</strong>
-        </span>
-      );
-    case 'card:moved':
-      return (
-        <span>
-          {who} moved card “<strong>{meta.cardTitle}</strong>” from{' '}
-          <strong>{meta.fromListTitle}</strong> to{' '}
-          <strong>{meta.toListTitle}</strong>
-        </span>
-      );
-    case 'card:deleted':
-      return (
-        <span>
-          {who} deleted card “<strong>{meta.cardTitle}</strong>” from{' '}
-          <strong>{meta.listTitle}</strong>
-        </span>
-      );
-
-    // Comments
-    case 'comment:created':
-      return (
-        <span>
-          {who} commented on “<strong>{meta.cardTitle}</strong>”:{' '}
-          <em>“{meta.commentPreview}”</em>
-        </span>
-      );
-    case 'comment:deleted':
-      return (
-        <span>
-          {who} deleted a comment on “<strong>{meta.cardTitle}</strong>”
-        </span>
-      );
-
-    // Board
-    case 'board:updated':
-      return (
-        <span>
-          {who} updated the board details to “<strong>{meta.newTitle}</strong>”
-        </span>
-      );
-    case 'board:deleted':
-      return <span>{who} deleted the board</span>;
-
-    // Members
-    case 'board:member:invited':
-      return (
-        <span>
-          {who} invited <strong>{meta.invitedUserName}</strong> as{' '}
-          <strong>{meta.role}</strong>
-        </span>
-      );
-    case 'board:member:inviteAccepted':
-      return <span>{who} accepted the invitation to join this board</span>;
-    case 'board:member:updated':
-      return (
-        <span>
-          {who} changed <strong>{meta.targetUserName}&apos;s</strong> role to{' '}
-          <strong>{meta.newRole}</strong>
-        </span>
-      );
-    case 'board:member:deleted':
-      return (
-        <span>
-          {who} removed <strong>{meta.deletedUserName}</strong> from the board
-        </span>
-      );
-
-    default:
-      return null;
-  }
-};
 
 /* -------------------------------------------------------------------------- */
 /* Component                                                                  */
