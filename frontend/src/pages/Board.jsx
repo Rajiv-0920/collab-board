@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useDispatch, useSelector } from 'react-redux';
@@ -6,34 +6,10 @@ import { useDispatch, useSelector } from 'react-redux';
 import { toast } from '@/components/ui/toast';
 
 import {
-  boardsApi,
   useGetBoardDetailsQuery,
   useGetBoardActivityQuery,
-  useUpdateBoardMutation,
-  useDeleteBoardMutation,
-  useAddMemberMutation,
-  useUpdateMemberMutation,
-  useRemoveMemberMutation,
 } from '../services/boardsApi';
 
-import {
-  useCreateListMutation,
-  useUpdateListMutation,
-  useDeleteListMutation,
-} from '../services/listApi';
-
-import {
-  useCreateCardMutation,
-  useUpdateCardMutation,
-  useDeleteCardMutation,
-} from '../services/cardApi';
-
-import {
-  useCreateCommentMutation,
-  useDeleteCommentMutation,
-} from '../services/commentApi';
-
-import { socket } from '../services/socket';
 import { selectCurrentUser } from '../store/authSlice';
 
 import BoardSkeleton from '@/components/board/BoardSkeleton';
@@ -62,6 +38,7 @@ import { useBoardMemberActions } from '@/hooks/board/useBoardMemberActions';
 import { useBoardActions } from '@/hooks/board/useBoardActions';
 import { useBoardDragAndDrop } from '@/hooks/board/useBoardDragAndDrop';
 import { useBoardSocket } from '@/hooks/board/useBoardSocket';
+import BoardCanvas from '@/components/board/BoardCanvas';
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -207,8 +184,26 @@ const Board = () => {
     refetch,
   } = useGetBoardDetailsQuery(boardId, { skip: !boardId });
 
-  // Activity is paginated: all pages live in one merged cache entry.
-  const [activityPage, setActivityPage] = useState(1);
+  const [activityPaginationState, setActivityPaginationState] = useState({
+    boardId,
+    page: 1,
+  });
+
+  const activityPage =
+    activityPaginationState.boardId === boardId
+      ? activityPaginationState.page
+      : 1;
+
+  const setActivityPage = (nextPage) => {
+    setActivityPaginationState((current) => {
+      const currentPage = current.boardId === boardId ? current.page : 1;
+
+      const page =
+        typeof nextPage === 'function' ? nextPage(currentPage) : nextPage;
+
+      return { boardId, page };
+    });
+  };
 
   const {
     data: activityResponse,
@@ -249,18 +244,22 @@ const Board = () => {
     currentUserIdRef.current = currentUserId;
   }, [currentUserId]);
 
-  const { selectedCard, selectedCardList } = useMemo(() => {
-    if (!selectedCardId) return { selectedCard: null, selectedCardList: null };
+  let selectedCard = null;
+  let selectedCardList = null;
 
+  if (selectedCardId) {
     for (const list of localLists) {
       const card = (list.cards ?? []).find(
         (item) => getId(item) === selectedCardId,
       );
-      if (card) return { selectedCard: card, selectedCardList: list };
-    }
 
-    return { selectedCard: null, selectedCardList: null };
-  }, [localLists, selectedCardId]);
+      if (card) {
+        selectedCard = card;
+        selectedCardList = list;
+        break;
+      }
+    }
+  }
 
   const activities = activityResponse?.activities ?? [];
 
@@ -270,11 +269,6 @@ const Board = () => {
     (activityPagination?.totalPages != null
       ? activityPage < activityPagination.totalPages
       : false);
-
-  // Switching boards starts the feed from the first page again.
-  useEffect(() => {
-    setActivityPage(1);
-  }, [boardId]);
 
   useEffect(() => {
     if (board?.lists) {
@@ -467,62 +461,25 @@ const Board = () => {
         />
       </div>
 
-      {/*
-        The ONLY scroll container of the board (both axes). Columns and card
-        lists must not scroll on their own: @hello-pangea/dnd auto-scrolls the
-        closest scrollable ancestor of the droppable you are over, so nested
-        scrollers would block horizontal auto-scroll while dragging cards.
-        Sticky list headers stick to the top of this container.
-      */}
-      <div className="min-h-0 min-w-0 flex-1 overflow-auto overscroll-contain">
-        <DragDropContext onDragEnd={handleDragEnd}>
-          <Droppable
-            droppableId={String(boardId)}
-            direction="horizontal"
-            type="LIST"
-            isDropDisabled={!canEdit}
-          >
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.droppableProps}
-                className={cn(
-                  'flex w-max min-w-full items-start gap-3 sm:gap-4',
-                  'px-3 pb-6 pt-3 sm:pt-4',
-                  snapshot.isDraggingOver && 'bg-muted/30',
-                )}
-              >
-                {lists.map((list, index) => (
-                  <BoardColumn
-                    key={String(list._id)}
-                    list={list}
-                    listIndex={index}
-                    members={members}
-                    canEdit={canEdit}
-                    isOwner={isOwner}
-                    currentUserId={currentUserId}
-                    isCreatingCard={isCreatingCard}
-                    onOpenCard={openCard}
-                    onAddCard={addCard}
-                    onRenameList={renameList}
-                    onDeleteList={deleteList}
-                    onDeleteCard={deleteCard}
-                    onMoveCard={moveCard}
-                    onAddComment={addComment}
-                    onDeleteComment={deleteComment}
-                  />
-                ))}
-
-                {provided.placeholder}
-
-                {canEdit && <AddListForm onAddList={addList} />}
-
-                {!canEdit && lists.length === 0 && <BoardEmptyState />}
-              </div>
-            )}
-          </Droppable>
-        </DragDropContext>
-      </div>
+      <BoardCanvas
+        boardId={boardId}
+        lists={lists}
+        members={members}
+        canEdit={canEdit}
+        isOwner={isOwner}
+        currentUserId={currentUserId}
+        isCreatingCard={isCreatingCard}
+        onDragEnd={handleDragEnd}
+        onOpenCard={openCard}
+        onAddCard={addCard}
+        onAddList={addList}
+        onRenameList={renameList}
+        onDeleteList={deleteList}
+        onDeleteCard={deleteCard}
+        onMoveCard={moveCard}
+        onAddComment={addComment}
+        onDeleteComment={deleteComment}
+      />
 
       <AddListDialog
         open={addListOpen}
