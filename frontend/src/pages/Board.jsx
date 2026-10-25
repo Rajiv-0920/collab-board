@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
-import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { useDispatch, useSelector } from 'react-redux';
 
 import { toast } from '@/components/ui/toast';
@@ -14,15 +13,7 @@ import { selectCurrentUser } from '../store/authSlice';
 
 import BoardSkeleton from '@/components/board/BoardSkeleton';
 import BoardHeader from '@/components/board/BoardHeader';
-import MembersDialog from '@/components/board/MembersDialog';
-import ActivitySheet from '@/components/board/ActivitySheet';
-import AddListForm from '@/components/board/AddListForm';
 import AddListDialog from '@/components/board/AddListDialog';
-import EditBoardDialog from '@/components/board/EditBoardDialog';
-import BoardColumn from '@/components/board/BoardColumn';
-import AddCardSheet from '@/components/board/AddCardSheet';
-import BoardEmptyState from '@/components/board/BoardEmptyState';
-import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog';
 import { getId } from '@/lib/ids';
 import { getErrorMessage } from '@/lib/errors';
 
@@ -39,6 +30,8 @@ import { useBoardActions } from '@/hooks/board/useBoardActions';
 import { useBoardDragAndDrop } from '@/hooks/board/useBoardDragAndDrop';
 import { useBoardSocket } from '@/hooks/board/useBoardSocket';
 import BoardCanvas from '@/components/board/BoardCanvas';
+import BoardOverlays from '@/components/board/BoardOverlays';
+import { useBoardActivity } from '@/hooks/board/useBoardActivity';
 
 /* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
@@ -184,41 +177,6 @@ const Board = () => {
     refetch,
   } = useGetBoardDetailsQuery(boardId, { skip: !boardId });
 
-  const [activityPaginationState, setActivityPaginationState] = useState({
-    boardId,
-    page: 1,
-  });
-
-  const activityPage =
-    activityPaginationState.boardId === boardId
-      ? activityPaginationState.page
-      : 1;
-
-  const setActivityPage = (nextPage) => {
-    setActivityPaginationState((current) => {
-      const currentPage = current.boardId === boardId ? current.page : 1;
-
-      const page =
-        typeof nextPage === 'function' ? nextPage(currentPage) : nextPage;
-
-      return { boardId, page };
-    });
-  };
-
-  const {
-    data: activityResponse,
-    isLoading: isLoadingActivity,
-    isFetching: isFetchingActivity,
-    refetch: refetchActivity,
-  } = useGetBoardActivityQuery(
-    { boardId, page: activityPage },
-    { skip: !boardId },
-  );
-
-  // Local copy of the lists so drag & drop can update the UI optimistically.
-  // Its array order is the source of truth while a drop is being saved:
-  // re-sorting by the persisted `order` on every render would make cards jump
-  // back and forth before the server confirms the new order.
   const [localLists, setLocalLists] = useState([]);
   const [selectedCardId, setSelectedCardId] = useState(null);
   const [membersOpen, setMembersOpen] = useState(false);
@@ -260,15 +218,6 @@ const Board = () => {
       }
     }
   }
-
-  const activities = activityResponse?.activities ?? [];
-
-  const activityPagination = activityResponse?.pagination;
-  const hasMoreActivity =
-    activityPagination?.hasNextPage ??
-    (activityPagination?.totalPages != null
-      ? activityPage < activityPagination.totalPages
-      : false);
 
   useEffect(() => {
     if (board?.lists) {
@@ -370,6 +319,16 @@ const Board = () => {
     protectedBoardKeys: PROTECTED_BOARD_KEYS,
     describeActivity,
   });
+
+  const {
+    activities,
+    page: activityPage,
+    setPage: setActivityPage,
+    hasMore: hasMoreActivity,
+    isLoading: isLoadingActivity,
+    isFetching: isFetchingActivity,
+    refetch: refetchActivity,
+  } = useBoardActivity(boardId);
   /* ------------------------------- Actions -------------------------------- */
   const openCard = useCallback((card) => setSelectedCardId(getId(card)), []);
 
@@ -487,68 +446,36 @@ const Board = () => {
         onAddList={addList}
       />
 
-      {isOwner && (
-        <EditBoardDialog
-          open={editBoardOpen}
-          onOpenChange={setEditBoardOpen}
-          board={board}
-          onSubmit={editBoard}
-        />
-      )}
-
-      <AddCardSheet
-        open={Boolean(selectedCard)}
-        onOpenChange={(open) => {
-          if (!open) setSelectedCardId(null);
-        }}
-        card={selectedCard}
-        listTitle={selectedCardList?.title ?? ''}
-        members={members}
-        isSubmitting={isUpdatingCard}
-        onSubmit={(card, patch) => saveCard(card, patch)}
-      />
-
-      <MembersDialog
-        open={membersOpen}
-        onOpenChange={setMembersOpen}
-        members={members}
+      <BoardOverlays
         isOwner={isOwner}
+        editBoardOpen={editBoardOpen}
+        setEditBoardOpen={setEditBoardOpen}
+        board={board}
+        editBoard={editBoard}
+        selectedCard={selectedCard}
+        setSelectedCardId={setSelectedCardId}
+        selectedCardList={selectedCardList}
+        members={members}
+        isUpdatingCard={isUpdatingCard}
+        saveCard={saveCard}
+        membersOpen={membersOpen}
+        setMembersOpen={setMembersOpen}
         currentUserId={currentUserId}
-        onInvite={inviteMember}
-        onChangeRole={changeMemberRole}
-        onRemove={removeMember}
-      />
-
-      <ActivitySheet
-        open={activityOpen}
-        onOpenChange={setActivityOpen}
+        inviteMember={inviteMember}
+        changeMemberRole={changeMemberRole}
+        removeMember={removeMember}
+        activityOpen={activityOpen}
+        setActivityOpen={setActivityOpen}
         activities={activities}
-        hasNextPage={Boolean(hasMoreActivity)}
-        isLoading={isLoadingActivity}
-        isLoadingMore={isFetchingActivity && activityPage > 1}
-        onLoadMore={loadMoreActivity}
-      />
-
-      <DeleteConfirmDialog
-        open={Boolean(deleteDialog)}
-        onOpenChange={(open) => {
-          if (!open && !isDeleting) setDeleteDialog(null);
-        }}
-        title={deleteDialog?.title}
-        description={deleteDialog?.description}
-        itemName={deleteDialog?.itemName}
-        details={deleteDialog?.details}
-        onConfirm={async () => {
-          if (!deleteDialog?.onConfirm || isDeleting) return;
-
-          setIsDeleting(true);
-          try {
-            await deleteDialog.onConfirm();
-          } finally {
-            setIsDeleting(false);
-          }
-        }}
+        hasMoreActivity={hasMoreActivity}
+        isLoadingActivity={isLoadingActivity}
+        isFetchingActivity={isFetchingActivity}
+        activityPage={activityPage}
+        loadMoreActivity={loadMoreActivity}
+        deleteDialog={deleteDialog}
+        setDeleteDialog={setDeleteDialog}
         isDeleting={isDeleting}
+        setIsDeleting={setIsDeleting}
       />
     </div>
   );
