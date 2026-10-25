@@ -11,7 +11,8 @@ import {
 } from '@/components/ui/sheet';
 
 import { UserAvatar } from './BoardParts';
-import { describeActivity, timeAgo } from './boardUtils';
+import { describeActivity } from './boardUtils';
+import { timeAgo } from '@/lib/date';
 
 /* Right-hand panel listing what happened on the board, newest first.
  *

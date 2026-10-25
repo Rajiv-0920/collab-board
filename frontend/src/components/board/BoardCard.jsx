@@ -26,7 +26,8 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { AvatarStack } from './BoardParts';
 import { DUE_TONES, getDueStatus, labelStyle } from './boardUtils';
-import { timeAgo } from '../dashboard/utils';
+import { timeAgo } from '@/lib/date';
+import { getId } from '@/lib/ids';
 
 /**
  * While dragging, `@hello-pangea/dnd` positions the card with
@@ -39,8 +40,6 @@ import { timeAgo } from '../dashboard/utils';
  * wrapper element instead of <html> or <body>.
  */
 const PORTAL_WHILE_DRAGGING = true;
-
-const getId = (value) => String(value?._id ?? value?.id ?? value ?? '');
 
 /**
  * Presentational card. All data changes go through callbacks owned by Board,

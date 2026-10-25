@@ -18,7 +18,7 @@ export const validate = (schema) => async (req, res, next) => {
     if (!(error instanceof ZodError)) {
       return next(error);
     }
-
+    console.log(error);
     const errorMessages = error.issues.map((e) => e.message);
 
     return res.status(400).json({

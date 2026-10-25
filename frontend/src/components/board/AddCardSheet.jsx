@@ -247,7 +247,7 @@ const AddCardSheet = ({
       const payload = {
         title: normalizedTitle,
         description: description.trim(),
-        dueDate: dueDate || null,
+        dueDate: dueDate || '',
         labels: finalLabels,
         // Backend expects an array, including when no assignees are selected.
         assigneeIds,

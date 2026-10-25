@@ -47,17 +47,25 @@ import BoardColumn from '@/components/board/BoardColumn';
 import AddCardSheet from '@/components/board/AddCardSheet';
 import BoardEmptyState from '@/components/board/BoardEmptyState';
 import DeleteConfirmDialog from '@/components/common/DeleteConfirmDialog';
+import { getId } from '@/lib/ids';
+import { getErrorMessage } from '@/lib/errors';
 
 import { cn } from '@/lib/utils';
 
 /* -------------------------------------------------------------------------- */
+/* Hooks                                                                    */
+/* -------------------------------------------------------------------------- */
+import { useBoardListActions } from '@/hooks/board/useBoardListActions';
+import { useBoardCardActions } from '@/hooks/board/useBoardCardActions';
+import { useBoardCommentActions } from '@/hooks/board/useBoardCommentActions';
+import { useBoardMemberActions } from '@/hooks/board/useBoardMemberActions';
+import { useBoardActions } from '@/hooks/board/useBoardActions';
+import { useBoardDragAndDrop } from '@/hooks/board/useBoardDragAndDrop';
+import { useBoardSocket } from '@/hooks/board/useBoardSocket';
+
+/* -------------------------------------------------------------------------- */
 /* Helpers                                                                    */
 /* -------------------------------------------------------------------------- */
-
-const getId = (value) => String(value?._id ?? value?.id ?? value ?? '');
-
-const getErrorMessage = (error, fallback) =>
-  error?.data?.message || error?.message || fallback;
 
 const byOrder = (a, b) => (a.order ?? 0) - (b.order ?? 0);
 
@@ -212,24 +220,6 @@ const Board = () => {
     { skip: !boardId },
   );
 
-  const [createList] = useCreateListMutation();
-  const [updateList] = useUpdateListMutation();
-  const [deleteListMutation] = useDeleteListMutation();
-
-  const [createCard, { isLoading: isCreatingCard }] = useCreateCardMutation();
-  const [updateCard, { isLoading: isUpdatingCard }] = useUpdateCardMutation();
-  const [deleteCardMutation] = useDeleteCardMutation();
-
-  const [createComment] = useCreateCommentMutation();
-  const [deleteCommentMutation] = useDeleteCommentMutation();
-
-  const [updateBoardMutation] = useUpdateBoardMutation();
-  const [deleteBoardMutation] = useDeleteBoardMutation();
-
-  const [addMemberMutation] = useAddMemberMutation();
-  const [updateMemberMutation] = useUpdateMemberMutation();
-  const [removeMemberMutation] = useRemoveMemberMutation();
-
   // Local copy of the lists so drag & drop can update the UI optimistically.
   // Its array order is the source of truth while a drop is being saved:
   // re-sorting by the persisted `order` on every render would make cards jump
@@ -302,505 +292,94 @@ const Board = () => {
     toast.add({ type: 'success', description });
   }, []);
 
-  /* ------------------------------ Real-time ------------------------------- */
-
-  // Socket handlers update the canonical RTK Query cache.
-  // localLists follows board.lists through the effect above.
-  useEffect(() => {
-    if (!boardId) return undefined;
-
-    let hasJoinedBefore = false;
-
-    const patchBoard = (recipe) => {
-      dispatch(
-        boardsApi.util.updateQueryData('getBoardDetails', boardId, (draft) => {
-          if (draft) recipe(draft);
-        }),
-      );
-    };
-
-    const refreshBoard = () => {
-      dispatch(
-        boardsApi.util.invalidateTags(['Boards', 'List', 'Card', 'Comment']),
-      );
-    };
-
-    const onConnect = () => {
-      socket.emit('joinBoard', boardId, (response) => {
-        if (response?.success === false) {
-          showError(
-            { data: { message: response.message } },
-            'Could not join this board.',
-          );
-          navigate('/dashboard', { replace: true });
-        }
-      });
-
-      // After a reconnect we may have missed events while offline.
-      if (hasJoinedBefore) refreshBoard();
-      hasJoinedBefore = true;
-    };
-
-    const onBoardUpdated = (updatedBoard) => {
-      patchBoard((draft) => {
-        Object.entries(updatedBoard ?? {}).forEach(([key, value]) => {
-          if (!PROTECTED_BOARD_KEYS.has(key)) draft[key] = value;
-        });
-      });
-    };
-
-    const onBoardDeleted = (payload) => {
-      if (payload?.boardId && getId(payload.boardId) !== getId(boardId)) {
-        return;
-      }
-
-      dispatch(boardsApi.util.invalidateTags(['Boards']));
-      navigate('/dashboard', { replace: true });
-    };
-
-    const onListCreated = (newList) => {
-      patchBoard((draft) => {
-        draft.lists ??= [];
-        if (!draft.lists.some((list) => getId(list) === getId(newList))) {
-          draft.lists.push({ ...newList, cards: newList.cards ?? [] });
-        }
-      });
-    };
-
-    const onListUpdated = (updatedList) => {
-      patchBoard((draft) => {
-        const index = (draft.lists ?? []).findIndex(
-          (list) => getId(list) === getId(updatedList),
-        );
-
-        if (index >= 0) {
-          draft.lists[index] = { ...draft.lists[index], ...updatedList };
-          draft.lists.sort(byOrder);
-        }
-      });
-    };
-
-    const onListDeleted = (payload) => {
-      const deletedId = getId(payload?.listId ?? payload);
-      patchBoard((draft) => {
-        draft.lists = (draft.lists ?? []).filter(
-          (list) => getId(list) !== deletedId,
-        );
-      });
-    };
-
-    const onCardCreated = (newCard) => {
-      patchBoard((draft) => {
-        const list = (draft.lists ?? []).find(
-          (item) => getId(item) === getId(newCard.listId),
-        );
-        if (!list) return;
-
-        list.cards ??= [];
-        if (!list.cards.some((card) => getId(card) === getId(newCard))) {
-          list.cards.push(newCard);
-          list.cards.sort(byOrder);
-        }
-      });
-    };
-
-    const onCardUpdated = (payload) => {
-      // Existing server event shape: { result, isMoved }.
-      const updatedCard = payload?.result ?? payload;
-      if (!updatedCard?._id) {
-        refreshBoard();
-        return;
-      }
-
-      const cardId = getId(updatedCard);
-      const destinationListId = getId(updatedCard.listId);
-
-      let destinationMissing = false;
-      patchBoard((draft) => {
-        let existingCard = null;
-
-        for (const list of draft.lists ?? []) {
-          const index = list.cards?.findIndex((card) => getId(card) === cardId);
-
-          if (index >= 0) {
-            existingCard = list.cards[index];
-            list.cards.splice(index, 1);
-            break;
-          }
-        }
-
-        const targetList = (draft.lists ?? []).find(
-          (list) => getId(list) === destinationListId,
-        );
-
-        if (!targetList) {
-          destinationMissing = true;
-          return;
-        }
-
-        targetList.cards ??= [];
-
-        const mergedCard = existingCard
-          ? { ...existingCard, ...updatedCard }
-          : updatedCard;
-
-        const duplicateIndex = targetList.cards.findIndex(
-          (card) => getId(card) === cardId,
-        );
-
-        if (duplicateIndex >= 0) {
-          targetList.cards[duplicateIndex] = mergedCard;
-        } else {
-          targetList.cards.push(mergedCard);
-        }
-
-        targetList.cards.sort(byOrder);
-      });
-
-      if (destinationMissing) refreshBoard();
-    };
-
-    const onCardDeleted = (payload) => {
-      const deletedId = getId(payload?.cardId ?? payload);
-      patchBoard((draft) => {
-        for (const list of draft.lists ?? []) {
-          list.cards = (list.cards ?? []).filter(
-            (card) => getId(card) !== deletedId,
-          );
-        }
-      });
-    };
-
-    const onCommentCreated = (comment) => {
-      patchBoard((draft) => {
-        const cardId = getId(comment.cardId);
-
-        for (const list of draft.lists ?? []) {
-          const card = (list.cards ?? []).find(
-            (item) => getId(item) === cardId,
-          );
-          if (!card) continue;
-
-          card.comments ??= [];
-          if (!card.comments.some((item) => getId(item) === getId(comment))) {
-            card.comments.push(comment);
-          }
-          break;
-        }
-      });
-    };
-
-    const onCommentDeleted = (payload) => {
-      const comment = payload?.comment ?? payload;
-      const cardId = getId(comment.cardId);
-      const commentId = getId(comment._id ?? comment.commentId);
-
-      patchBoard((draft) => {
-        for (const list of draft.lists ?? []) {
-          const card = (list.cards ?? []).find(
-            (item) => getId(item) === cardId,
-          );
-          if (card) {
-            card.comments = (card.comments ?? []).filter(
-              (item) => getId(item) !== commentId,
-            );
-            break;
-          }
-        }
-      });
-    };
-
-    const onMemberInvited = (member) => {
-      patchBoard((draft) => {
-        draft.members ??= [];
-        const userId = getId(member.userId);
-        if (!draft.members.some((item) => getId(item.userId) === userId)) {
-          draft.members.push(member);
-        }
-      });
-    };
-
-    const onMemberUpdated = (payload) => {
-      patchBoard((draft) => {
-        const userId = getId(payload.userId);
-        const member = draft.members?.find(
-          (item) => getId(item.userId) === userId,
-        );
-        if (member) member.role = payload.role;
-
-        // If it's *my* role that changed, update what the UI permissions use.
-        if (userId === currentUserIdRef.current) {
-          draft.myRole = payload.role;
-        }
-      });
-    };
-
-    const onMemberDeleted = (payload) => {
-      const removedUserId = getId(payload?.userId ?? payload);
-
-      if (removedUserId === currentUserIdRef.current) {
-        dispatch(boardsApi.util.invalidateTags(['Boards']));
-        navigate('/dashboard', { replace: true });
-        return;
-      }
-
-      patchBoard((draft) => {
-        draft.members = (draft.members ?? []).filter(
-          (member) => getId(member.userId) !== removedUserId,
-        );
-      });
-    };
-
-    const onActivityCreated = (payload) => {
-      if (!payload) return;
-
-      // Everyone (including the actor) gets the entry at the top of the feed.
-      dispatch(
-        boardsApi.util.updateQueryData(
-          'getBoardActivity',
-          { boardId },
-          (draft) => {
-            if (!draft?.activities) return;
-
-            const id = payload._id ?? payload.id;
-            if (
-              id &&
-              draft.activities.some((item) => getId(item) === String(id))
-            ) {
-              return;
-            }
-            draft.activities.unshift(payload);
-          },
-        ),
-      );
-
-      // The person who did the action already got a success toast.
-      if (getId(payload.userId) === currentUserIdRef.current) return;
-
-      const description = describeActivity(payload);
-      if (description) toast.add({ type: 'success', description });
-    };
-
-    const eventHandlers = [
-      ['connect', onConnect],
-      ['board:updated', onBoardUpdated],
-      ['board:deleted', onBoardDeleted],
-      ['list:created', onListCreated],
-      ['list:updated', onListUpdated],
-      ['list:deleted', onListDeleted],
-      ['card:created', onCardCreated],
-      ['card:updated', onCardUpdated],
-      ['card:deleted', onCardDeleted],
-      ['comment:created', onCommentCreated],
-      ['comment:deleted', onCommentDeleted],
-      ['board:member:inviteAccepted', onMemberInvited],
-      ['board:member:updated', onMemberUpdated],
-      ['board:member:deleted', onMemberDeleted],
-      ['activity:created', onActivityCreated],
-    ];
-
-    eventHandlers.forEach(([event, handler]) => socket.on(event, handler));
-
-    if (!socket.connected) socket.connect();
-    else onConnect();
-
-    return () => {
-      eventHandlers.forEach(([event, handler]) => socket.off(event, handler));
-
-      if (socket.connected) socket.emit('leaveBoard', boardId);
-      socket.disconnect();
-    };
-  }, [boardId, dispatch, navigate, showError]);
-
-  /* ------------------------------- Actions -------------------------------- */
+  const { addList, renameList, updateList, deleteList } = useBoardListActions({
+    boardId,
+    canEdit,
+    setDeleteDialog,
+    showError,
+    showSuccess,
+  });
 
   const findListOfCard = (card) =>
     lists.find((item) =>
       (item.cards ?? []).some((itemCard) => getId(itemCard) === getId(card)),
     );
 
+  const {
+    addCard,
+    saveCard,
+    deleteCard,
+    updateCard,
+    isCreatingCard,
+    isUpdatingCard,
+  } = useBoardCardActions({
+    boardId,
+    canEdit,
+    findListOfCard,
+    setDeleteDialog,
+    setSelectedCardId,
+    showError,
+    showSuccess,
+    refetch,
+  });
+
+  const { addComment, deleteComment } = useBoardCommentActions({
+    boardId,
+    findListOfCard,
+    currentUserId,
+    isOwner,
+    showError,
+    showSuccess,
+  });
+
+  const { inviteMember, changeMemberRole, removeMember } =
+    useBoardMemberActions({
+      boardId,
+      isOwner,
+      setDeleteDialog,
+      showError,
+      showSuccess,
+    });
+
+  const { editBoard, deleteBoard } = useBoardActions({
+    boardId,
+    board,
+    lists,
+    members,
+    isOwner,
+    setDeleteDialog,
+    showError,
+    showSuccess,
+    navigate,
+  });
+
+  const { persistCardPosition, handleMoveError, handleDragEnd } =
+    useBoardDragAndDrop({
+      boardId,
+      lists,
+      board,
+      canEdit,
+      updateCard,
+      updateList,
+      setLocalLists,
+      sortLists,
+      showError,
+      refetch,
+    });
+
+  useBoardSocket({
+    boardId,
+    dispatch,
+    navigate,
+    showError,
+    currentUserIdRef,
+    protectedBoardKeys: PROTECTED_BOARD_KEYS,
+    describeActivity,
+  });
+  /* ------------------------------- Actions -------------------------------- */
   const openCard = useCallback((card) => setSelectedCardId(getId(card)), []);
 
-  const addList = async (title) => {
-    if (!canEdit) return;
-
-    try {
-      await createList({ boardId, title: title.trim() }).unwrap();
-      showSuccess('List created successfully.');
-      // Mutation invalidation refreshes board details.
-    } catch (error) {
-      showError(error, 'Could not create the list.');
-      throw error;
-    }
-  };
-
-  const renameList = async (list, title) => {
-    if (!canEdit) return;
-
-    try {
-      await updateList({
-        boardId,
-        listId: list._id,
-        title: title.trim(),
-      }).unwrap();
-      showSuccess('List renamed successfully.');
-    } catch (error) {
-      showError(error, 'Could not rename the list.');
-      throw error;
-    }
-  };
-
-  const deleteList = (list) => {
-    if (!canEdit) return;
-
-    const cardCount = list.cards?.length ?? 0;
-
-    setDeleteDialog({
-      title: 'Delete this list?',
-      description: cardCount
-        ? `This will permanently delete this list and its ${cardCount} card(s). You can't undo this.`
-        : "This will permanently delete this list. You can't undo this.",
-      itemName: list.title,
-      details: `${cardCount} ${cardCount === 1 ? 'card' : 'cards'}`,
-      onConfirm: async () => {
-        try {
-          await deleteListMutation({ boardId, listId: list._id }).unwrap();
-          showSuccess('List deleted successfully.');
-          setDeleteDialog(null);
-        } catch (error) {
-          showError(error, 'Could not delete the list.');
-        }
-      },
-    });
-  };
-
-  const addCard = async (list, card) => {
-    if (!canEdit) return;
-
-    try {
-      await createCard({
-        boardId,
-        listId: list._id,
-        cardBody: { ...card },
-      }).unwrap();
-      showSuccess('Card created successfully.');
-    } catch (error) {
-      showError(error, 'Could not create the card.');
-      throw error;
-    }
-  };
-
-  const saveCard = async (card, patch) => {
-    if (!canEdit) return;
-
-    const list = findListOfCard(card);
-    if (!list) throw new Error('Could not find the card’s list.');
-
-    const assigneeIds = (
-      Array.isArray(patch.assigneeIds) ? patch.assigneeIds : []
-    )
-      .map(getId)
-      .filter(Boolean);
-
-    try {
-      await updateCard({
-        boardId,
-        listId: list._id,
-        cardId: getId(card),
-        cardBody: {
-          title: patch.title,
-          description: patch.description ?? '',
-          dueDate: patch.dueDate || null,
-          labels: patch.labels ?? [],
-          assigneeIds,
-          version: patch.version ?? card.version,
-        },
-      }).unwrap();
-
-      showSuccess('Card updated successfully.');
-      setSelectedCardId(null);
-    } catch (error) {
-      if (error?.status === 409) {
-        await refetch();
-        showError(
-          error,
-          'This card changed elsewhere. The latest version has been loaded; please review your changes.',
-        );
-      } else {
-        showError(error, 'Could not save the card.');
-      }
-      throw error;
-    }
-  };
-
-  const deleteCard = (card) => {
-    if (!canEdit) return;
-
-    const list = findListOfCard(card);
-    if (!list) return;
-
-    setDeleteDialog({
-      title: 'Delete this card?',
-      description:
-        "This card will be permanently deleted. You can't undo this.",
-      itemName: card.title,
-      details: `List: ${list.title}`,
-      onConfirm: async () => {
-        try {
-          await deleteCardMutation({
-            boardId,
-            listId: list._id,
-            cardId: card._id,
-          }).unwrap();
-
-          showSuccess('Card deleted successfully.');
-          setSelectedCardId(null);
-          setDeleteDialog(null);
-        } catch (error) {
-          showError(error, 'Could not delete the card.');
-        }
-      },
-    });
-  };
-
   // Shared by "Move up/down" and drag & drop.
-  const persistCardPosition = ({
-    card,
-    fromListId,
-    toListId,
-    previous,
-    next,
-  }) =>
-    updateCard({
-      boardId,
-      listId: fromListId,
-      cardId: card._id,
-      newListId: toListId !== fromListId ? toListId : undefined,
-      cardBody: {
-        title: card.title,
-        description: card.description ?? '',
-        dueDate: card.dueDate ?? null,
-        labels: card.labels ?? [],
-        assigneeIds: (card.assigneeIds ?? []).map(getId),
-        version: card.version,
-        prevOrder: previous?.order ?? null,
-        nextOrder: next?.order ?? null,
-      },
-    }).unwrap();
-
-  const handleMoveError = async (error) => {
-    setLocalLists(sortLists(board?.lists ?? []));
-
-    if (error?.status === 409) {
-      await refetch();
-      showError(
-        error,
-        'The card changed elsewhere. The board has been refreshed.',
-      );
-    } else {
-      showError(error, 'Could not move the card.');
-    }
-  };
 
   const moveCard = async (card, direction) => {
     if (!canEdit) return;
@@ -837,228 +416,6 @@ const Board = () => {
     } catch (error) {
       await handleMoveError(error);
     }
-  };
-
-  const addComment = async (card, text) => {
-    if (!text.trim()) return;
-
-    const list = findListOfCard(card);
-    if (!list) throw new Error('Could not find the card’s list.');
-
-    try {
-      await createComment({
-        boardId,
-        listId: list._id,
-        cardId: card._id,
-        text: text.trim(),
-      }).unwrap();
-      showSuccess('Comment added successfully.');
-    } catch (error) {
-      showError(error, 'Could not add the comment.');
-      throw error;
-    }
-  };
-
-  const deleteComment = async (card, comment) => {
-    const list = findListOfCard(card);
-    if (!list) return;
-
-    if (getId(comment.userId) !== currentUserId && !isOwner) {
-      showError(null, 'Only the comment author or board owner can delete it.');
-      return;
-    }
-
-    try {
-      await deleteCommentMutation({
-        boardId,
-        listId: list._id,
-        cardId: card._id,
-        commentId: comment._id,
-      }).unwrap();
-      showSuccess('Comment deleted successfully.');
-    } catch (error) {
-      showError(error, 'Could not delete the comment.');
-      throw error;
-    }
-  };
-
-  const handleDragEnd = async ({ source, destination, type }) => {
-    if (!canEdit || !destination) return;
-
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
-    }
-
-    if (type === 'LIST') {
-      const reordered = [...lists];
-      const [moved] = reordered.splice(source.index, 1);
-      if (!moved) return;
-
-      reordered.splice(destination.index, 0, moved);
-      setLocalLists(reordered);
-
-      try {
-        await updateList({
-          boardId,
-          listId: moved._id,
-          title: moved.title,
-          prevOrder: reordered[destination.index - 1]?.order ?? null,
-          nextOrder: reordered[destination.index + 1]?.order ?? null,
-        }).unwrap();
-      } catch (error) {
-        setLocalLists(sortLists(board?.lists ?? []));
-        showError(error, 'Could not reorder the lists.');
-      }
-      return;
-    }
-
-    if (type !== 'CARD') return;
-
-    const sourceIndex = lists.findIndex(
-      (list) => getId(list) === source.droppableId,
-    );
-    const destinationIndex = lists.findIndex(
-      (list) => getId(list) === destination.droppableId,
-    );
-
-    if (sourceIndex < 0 || destinationIndex < 0) return;
-
-    const reordered = lists.map((list) => ({
-      ...list,
-      cards: [...(list.cards ?? [])],
-    }));
-
-    const [moved] = reordered[sourceIndex].cards.splice(source.index, 1);
-    if (!moved) return;
-
-    reordered[destinationIndex].cards.splice(destination.index, 0, moved);
-    setLocalLists(reordered);
-
-    const destinationCards = reordered[destinationIndex].cards;
-
-    try {
-      await persistCardPosition({
-        card: moved,
-        fromListId: source.droppableId,
-        toListId: destination.droppableId,
-        previous: destinationCards[destination.index - 1] ?? null,
-        next: destinationCards[destination.index + 1] ?? null,
-      });
-    } catch (error) {
-      await handleMoveError(error);
-    }
-  };
-
-  const inviteMember = async ({ email, role }) => {
-    if (!isOwner) return;
-
-    try {
-      await addMemberMutation({ boardId, email, role }).unwrap();
-      showSuccess(`Invitation sent to ${email}.`);
-    } catch (error) {
-      showError(error, 'Could not invite this member.');
-      throw error;
-    }
-  };
-
-  const changeMemberRole = async (member, role) => {
-    if (!isOwner) return;
-
-    try {
-      await updateMemberMutation({
-        boardId,
-        memberId: getId(member.userId),
-        role,
-      }).unwrap();
-      showSuccess('Member role updated successfully.');
-    } catch (error) {
-      showError(error, 'Could not update the member role.');
-      throw error;
-    }
-  };
-
-  const removeMember = (member) => {
-    if (!isOwner) return;
-
-    const memberName = member.userId?.name ?? 'this member';
-
-    setDeleteDialog({
-      title: 'Remove this member?',
-      description:
-        'This member will lose access to this board. You can invite them again later.',
-      itemName: memberName,
-      details: member.userId?.email ?? 'Board member',
-      onConfirm: async () => {
-        try {
-          await removeMemberMutation({
-            boardId,
-            memberId: getId(member.userId),
-          }).unwrap();
-
-          showSuccess('Member removed successfully.');
-          setDeleteDialog(null);
-        } catch (error) {
-          showError(error, 'Could not remove the member.');
-        }
-      },
-    });
-  };
-
-  // Called by EditBoardDialog with `{ title, description }`.
-  const editBoard = async (values) => {
-    if (!isOwner) return;
-
-    const body = values ?? {};
-
-    if (!body.title?.trim()) {
-      showError(null, 'Board title cannot be empty.');
-      return;
-    }
-
-    try {
-      await updateBoardMutation({
-        id: boardId,
-        body: {
-          ...body,
-          title: body.title.trim(),
-          description: body.description ?? '',
-        },
-      }).unwrap();
-      showSuccess('Board updated successfully.');
-    } catch (error) {
-      showError(error, 'Could not update the board.');
-      throw error;
-    }
-  };
-
-  const deleteBoard = () => {
-    if (!isOwner) return;
-
-    const taskCount = lists.reduce(
-      (total, list) => total + (list.cards?.length ?? 0),
-      0,
-    );
-
-    setDeleteDialog({
-      title: 'Delete this board?',
-      description:
-        "This will permanently delete the board for everyone. You can't undo this.",
-      itemName: board.title,
-      details: `${lists.length} ${lists.length === 1 ? 'list' : 'lists'} · ${taskCount} ${taskCount === 1 ? 'card' : 'cards'} · ${members.length} ${members.length === 1 ? 'member' : 'members'}`,
-      onConfirm: async () => {
-        try {
-          await deleteBoardMutation(boardId).unwrap();
-          showSuccess('Board deleted successfully.');
-          setDeleteDialog(null);
-          navigate('/dashboard', { replace: true });
-        } catch (error) {
-          showError(error, 'Could not delete the board.');
-        }
-      },
-    });
   };
 
   const openActivity = () => {
