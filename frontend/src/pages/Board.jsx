@@ -191,7 +191,7 @@ const Board = () => {
     navigate,
   });
 
-  const { persistCardPosition, handleMoveError, handleDragEnd } =
+  const { persistCardPosition, handleMoveError, handleDragEnd, moveCard } =
     useBoardDragAndDrop({
       boardId,
       lists,
@@ -228,44 +228,6 @@ const Board = () => {
   const openCard = useCallback((card) => setSelectedCardId(getId(card)), []);
 
   // Shared by "Move up/down" and drag & drop.
-
-  const moveCard = async (card, direction) => {
-    if (!canEdit) return;
-
-    const list = findListOfCard(card);
-    if (!list) return;
-
-    const cards = list.cards ?? [];
-    const index = cards.findIndex((item) => getId(item) === getId(card));
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
-    if (index < 0 || targetIndex < 0 || targetIndex >= cards.length) return;
-
-    const reordered = [...cards];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(targetIndex, 0, moved);
-
-    // Optimistic update; the visible move is its own confirmation, so there is
-    // no success toast for reordering.
-    setLocalLists((current) =>
-      current.map((item) =>
-        getId(item) === getId(list) ? { ...item, cards: reordered } : item,
-      ),
-    );
-
-    try {
-      await persistCardPosition({
-        card: moved,
-        fromListId: list._id,
-        toListId: list._id,
-        previous: reordered[targetIndex - 1] ?? null,
-        next: reordered[targetIndex + 1] ?? null,
-      });
-    } catch (error) {
-      await handleMoveError(error);
-    }
-  };
-
   const openActivity = () => {
     setActivityOpen(true);
 
