@@ -77,7 +77,10 @@ export const loginUser = async (res, { email, password, rememberMe }) => {
 export const logoutUser = async (req, res) => {
   res.cookie('token', '', {
     httpOnly: true,
-    expires: new Date(0), // Instantly expires the cookie
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    path: '/',
+    expires: new Date(0),
   });
 
   return {
