@@ -201,6 +201,7 @@ const Board = () => {
     setLocalLists,
     sortLists,
     showError,
+    findListOfCard,
     refetch,
   });
 

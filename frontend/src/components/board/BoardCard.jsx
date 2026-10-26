@@ -210,26 +210,24 @@ const BoardCard = ({
                     </span>
                   )}
 
-                  {(comments.length > 0 || canEdit) && (
-                    <button
-                      type="button"
-                      onClick={() => setShowComments((value) => !value)}
-                      className={cn(
-                        'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
-                        'transition-colors hover:bg-muted hover:text-foreground',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                        showComments || comments.length > 0
-                          ? 'text-foreground/80'
-                          : 'text-muted-foreground',
-                        showComments && 'bg-muted',
-                      )}
-                      aria-expanded={showComments}
-                      aria-label={`${comments.length} comments`}
-                    >
-                      <MessageSquare className="size-3" aria-hidden="true" />
-                      {comments.length}
-                    </button>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setShowComments((value) => !value)}
+                    className={cn(
+                      'inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px] font-medium',
+                      'transition-colors hover:bg-muted hover:text-foreground',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                      showComments || comments.length > 0
+                        ? 'text-foreground/80'
+                        : 'text-muted-foreground',
+                      showComments && 'bg-muted',
+                    )}
+                    aria-expanded={showComments}
+                    aria-label={`${comments.length} comments`}
+                  >
+                    <MessageSquare className="size-3" aria-hidden="true" />
+                    {comments.length}
+                  </button>
 
                   {assignees.length > 0 && (
                     <div className="ml-auto pl-1">

@@ -10,6 +10,7 @@ export const useBoardDragAndDrop = ({
   setLocalLists,
   sortLists,
   showError,
+  findListOfCard,
   refetch,
 }) => {
   const persistCardPosition = ({
