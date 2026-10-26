@@ -19,8 +19,7 @@ io.use((socket, next) => {
     const cookieHeader = socket.handshake.headers.cookie;
 
     if (!cookieHeader) {
-      console.log('No cookies found in handshake headers');
-      return;
+      return next(new Error('Authentication required'));
     }
 
     const match = cookieHeader.match(/(?:^|;\s*)token=([^;]*)/);

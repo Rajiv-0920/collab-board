@@ -9,7 +9,7 @@ import './app.js';
 
 setServers(['1.1.1.1', '8.8.8.8']);
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 const startServer = async () => {
   try {
