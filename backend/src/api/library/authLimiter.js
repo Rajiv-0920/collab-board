@@ -1,7 +1,9 @@
-const isTest = process.env.NODE_ENV === 'development';
+import rateLimit from 'express-rate-limit';
+
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 // Rate limiter
-export const authLimiter = isTest
+export const authLimiter = isDevelopment
   ? (req, res, next) => next()
   : rateLimit({
       windowMs: 15 * 60 * 1000,
