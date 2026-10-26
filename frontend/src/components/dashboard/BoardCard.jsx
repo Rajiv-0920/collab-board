@@ -13,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { timeAgo } from './utils';
+import { timeAgo } from '@/lib/date';
 import { avatarInitials } from '@/lib/avatarInitials';
 import { pluralize } from '@/lib/pluralize';
 
@@ -141,7 +141,7 @@ const BoardCard = ({ board, onEdit, canManage = false, onDelete }) => {
         </div>
 
         <span className="text-xs text-muted-foreground">
-          {timeAgo(updatedAt)}
+          {timeAgo(updatedAt, 'relative')}
         </span>
       </div>
     </Card>

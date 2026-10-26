@@ -14,7 +14,8 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 
 import { UserAvatar } from './BoardParts';
-import { labelStyle, timeAgo, toDateInputValue } from './boardUtils';
+import { labelStyle, toDateInputValue } from './boardUtils';
+import { timeAgo } from '@/lib/date';
 
 const SectionTitle = ({ children }) => (
   <h4 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -36,7 +37,9 @@ const CardDetails = ({
   onDeleteComment,
   onClose,
 }) => {
-  const initialAssigneeIds = (card.assigneeIds ?? []).map((user) => String(user?._id ?? user ?? ''));
+  const initialAssigneeIds = (card.assigneeIds ?? []).map((user) =>
+    String(user?._id ?? user ?? ''),
+  );
 
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description ?? '');
@@ -105,7 +108,9 @@ const CardDetails = ({
   // Viewers only see who is assigned, editors see everyone to pick from
   const visibleMembers = canEdit
     ? members
-    : members.filter((member) => assigneeIds.includes(String(member.userId?._id ?? member.userId ?? '')));
+    : members.filter((member) =>
+        assigneeIds.includes(String(member.userId?._id ?? member.userId ?? '')),
+      );
 
   return (
     <div className="flex max-h-[90vh] flex-col">

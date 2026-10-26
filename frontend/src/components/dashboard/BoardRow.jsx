@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { timeAgo } from './utils';
+import { timeAgo } from '@/lib/date';
 import { avatarInitials } from '@/lib/avatarInitials';
 import { pluralize } from '@/lib/pluralize';
 
@@ -105,7 +105,7 @@ const BoardRow = ({ board, onEdit, onDelete, canManage = false }) => {
 
       {/* Updated */}
       <span className="hidden w-25 shrink-0 text-right text-xs text-muted-foreground lg:block">
-        {timeAgo(updatedAt)}
+        {timeAgo(updatedAt, 'relative')}
       </span>
 
       {/* Actions */}

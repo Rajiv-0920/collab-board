@@ -26,6 +26,8 @@ import DeleteBoardDialog from './DeleteBoardDialog';
 import BoardPagination from './BoardPagination';
 import FilterDropdown from './FilterDropdown';
 
+import { getId } from '@/lib/ids';
+
 const VIEW_STORAGE_KEY = 'boards:view';
 const SEARCH_DEBOUNCE_MS = 400;
 
@@ -75,8 +77,6 @@ const storeView = (view) => {
     // Storage can be blocked; the view just won't be remembered.
   }
 };
-
-const getId = (value) => String(value?._id ?? value ?? '');
 
 const isBoardOwner = (board, user) =>
   Boolean(user) && getId(board.ownerId) === getId(user._id);
