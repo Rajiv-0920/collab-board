@@ -1,8 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { useRegisterMutation } from '../../services/authApi';
-import { selectCurrentUser } from '../../store/authSlice';
-import { useSelector } from 'react-redux';
 import { Loader2, ClipboardList } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
@@ -19,14 +17,10 @@ import {
 
 const RegisterForm = () => {
   const [user, setUser] = useState({ name: '', email: '', password: '' });
-  const [
-    register,
-    { error, isLoading, isError, isSuccess: isRegisterSuccess },
-  ] = useRegisterMutation();
+  const [register, { error, isLoading, isError }] = useRegisterMutation();
   const [errors, setErrors] = useState({});
 
   const navigate = useNavigate();
-  const currentUser = useSelector(selectCurrentUser);
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
@@ -49,9 +43,8 @@ const RegisterForm = () => {
       await register(user).unwrap();
       navigate('/auth/login');
     } catch (err) {
+      setErrors({ error: err.errors[0] });
       console.error('Register failed:', err);
-    } finally {
-      setUser({ name: '', email: '', password: '' });
     }
   };
 
@@ -75,7 +68,8 @@ const RegisterForm = () => {
             role="alert"
             className="mb-5 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
-            {error?.message ||
+            {errors?.error ||
+              error?.message ||
               error?.error ||
               'Unable to register. Please try again.'}
           </div>

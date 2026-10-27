@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import { useLoginMutation } from '../../services/authApi';
 import { setCredentials } from '../../store/authSlice';
 import { Link } from 'react-router';
@@ -19,7 +19,6 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
 import { Loader2, ClipboardList } from 'lucide-react';
-import { toast } from '@/components/ui/toast';
 
 const LoginForm = () => {
   const [user, setUser] = useState({
@@ -60,6 +59,7 @@ const LoginForm = () => {
       );
       dispatch(setCredentials(userData));
     } catch (err) {
+      setErrors({ error: err.errors[0] });
       console.error('Login failed:', err);
     }
   };
@@ -83,7 +83,8 @@ const LoginForm = () => {
             role="alert"
             className="mb-5 rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm text-destructive"
           >
-            {error?.message ||
+            {errors?.error ||
+              error?.message ||
               error?.error ||
               'Unable to sign in. Please check your credentials and try again.'}
           </div>
