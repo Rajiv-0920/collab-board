@@ -1,11 +1,7 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
-<<<<<<< Updated upstream
-=======
 import { Link } from 'react-router';
 import { Loader2, ClipboardList } from 'lucide-react';
-
->>>>>>> Stashed changes
 import { useLoginMutation } from '../../services/authApi';
 import { setCredentials } from '../../store/authSlice';
 
@@ -23,11 +19,6 @@ import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
-<<<<<<< Updated upstream
-import { Loader2, ClipboardList } from 'lucide-react';
-
-=======
->>>>>>> Stashed changes
 const LoginForm = () => {
   const [user, setUser] = useState({
     email: '',

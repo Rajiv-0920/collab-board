@@ -1,9 +1,5 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-<<<<<<< Updated upstream
-import { useRegisterMutation } from '../../services/authApi';
-=======
->>>>>>> Stashed changes
 import { Loader2, ClipboardList } from 'lucide-react';
 
 import { useRegisterMutation } from '../../services/authApi';
@@ -22,16 +18,10 @@ import { Label } from '@/components/ui/label';
 
 const RegisterForm = () => {
   const [user, setUser] = useState({ name: '', email: '', password: '' });
-<<<<<<< Updated upstream
-  const [register, { error, isLoading, isError }] = useRegisterMutation();
-=======
->>>>>>> Stashed changes
   const [errors, setErrors] = useState({});
 
   const [register, { error, isLoading, isError }] = useRegisterMutation();
   const navigate = useNavigate();
-<<<<<<< Updated upstream
-=======
 
   const handleChange = (field) => (e) => {
     setUser((prev) => ({ ...prev, [field]: e.target.value }));
@@ -39,7 +29,6 @@ const RegisterForm = () => {
       setErrors((prev) => ({ ...prev, [field]: null }));
     }
   };
->>>>>>> Stashed changes
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
