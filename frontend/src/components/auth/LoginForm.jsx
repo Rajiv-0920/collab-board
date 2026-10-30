@@ -1,8 +1,14 @@
 import { useState } from 'react';
 import { useDispatch } from 'react-redux';
+<<<<<<< Updated upstream
+=======
+import { Link } from 'react-router';
+import { Loader2, ClipboardList } from 'lucide-react';
+
+>>>>>>> Stashed changes
 import { useLoginMutation } from '../../services/authApi';
 import { setCredentials } from '../../store/authSlice';
-import { Link } from 'react-router';
+
 import {
   Card,
   CardContent,
@@ -10,39 +16,42 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field';
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 
+<<<<<<< Updated upstream
 import { Loader2, ClipboardList } from 'lucide-react';
 
+=======
+>>>>>>> Stashed changes
 const LoginForm = () => {
   const [user, setUser] = useState({
-    name: '',
     email: '',
     password: '',
     rememberMe: false,
   });
+  const [errors, setErrors] = useState({});
+
   const [login, { isLoading, isError, error }] = useLoginMutation();
   const dispatch = useDispatch();
-  const [errors, setErrors] = useState({});
+
+  const handleChange = (field) => (e) => {
+    setUser((prev) => ({ ...prev, [field]: e.target.value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: '' }));
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     const newErrors = {};
-
-    if (!user.email.trim()) {
-      newErrors.email = 'Email is required';
-    }
-
-    if (!user.password) {
-      newErrors.password = 'Password is required';
-    }
+    if (!user.email.trim()) newErrors.email = 'Email is required';
+    if (!user.password) newErrors.password = 'Password is required';
 
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
@@ -77,6 +86,7 @@ const LoginForm = () => {
 
         <CardDescription>Sign in to continue to your workspace</CardDescription>
       </CardHeader>
+
       <CardContent>
         {isError && (
           <div
@@ -89,72 +99,51 @@ const LoginForm = () => {
               'Unable to sign in. Please check your credentials and try again.'}
           </div>
         )}
+
         <form className="space-y-5" onSubmit={handleSubmit}>
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
-
             <Input
               id="email"
               type="email"
               placeholder="you@example.com"
               value={user.email}
-              onChange={(e) => {
-                setUser({ ...user, email: e.target.value });
-
-                if (errors.email) {
-                  setErrors((prev) => ({
-                    ...prev,
-                    email: '',
-                  }));
-                }
-              }}
+              onChange={handleChange('email')}
               aria-invalid={!!errors.email}
             />
-
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               placeholder="••••••••"
               value={user.password}
-              onChange={(e) => {
-                setUser({ ...user, password: e.target.value });
-
-                if (errors.password) {
-                  setErrors((prev) => ({
-                    ...prev,
-                    password: '',
-                  }));
-                }
-              }}
+              onChange={handleChange('password')}
               aria-invalid={!!errors.password}
             />
-
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password}</p>
             )}
           </div>
+
           <FieldGroup>
             <Field orientation="horizontal">
               <Checkbox
-                id="terms-checkbox-basic"
-                name="terms-checkbox-basic"
+                id="remember-me"
+                name="remember-me"
                 checked={user.rememberMe}
                 onCheckedChange={(checked) =>
-                  setUser({ ...user, rememberMe: checked })
+                  setUser((prev) => ({ ...prev, rememberMe: checked }))
                 }
               />
-              <FieldLabel htmlFor="terms-checkbox-basic">
-                Remember me?
-              </FieldLabel>
+              <FieldLabel htmlFor="remember-me">Remember me?</FieldLabel>
             </Field>
           </FieldGroup>
+
           <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? (
               <>
@@ -166,6 +155,7 @@ const LoginForm = () => {
             )}
           </Button>
         </form>
+
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Don't have an account?{' '}
           <Link

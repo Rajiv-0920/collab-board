@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+<<<<<<< Updated upstream
 import { useRegisterMutation } from '../../services/authApi';
+=======
+>>>>>>> Stashed changes
 import { Loader2, ClipboardList } from 'lucide-react';
 
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { useRegisterMutation } from '../../services/authApi';
 
 import {
   Card,
@@ -14,22 +15,38 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { PasswordInput } from '@/components/ui/password-input';
+import { Label } from '@/components/ui/label';
 
 const RegisterForm = () => {
   const [user, setUser] = useState({ name: '', email: '', password: '' });
+<<<<<<< Updated upstream
   const [register, { error, isLoading, isError }] = useRegisterMutation();
+=======
+>>>>>>> Stashed changes
   const [errors, setErrors] = useState({});
 
+  const [register, { error, isLoading, isError }] = useRegisterMutation();
   const navigate = useNavigate();
+<<<<<<< Updated upstream
+=======
+
+  const handleChange = (field) => (e) => {
+    setUser((prev) => ({ ...prev, [field]: e.target.value }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: null }));
+    }
+  };
+>>>>>>> Stashed changes
 
   const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+
     const newErrors = {};
-
-    if (!user.name) newErrors.name = 'Name is required';
-
-    if (!user.email) newErrors.email = 'Email is required';
-
+    if (!user.name.trim()) newErrors.name = 'Name is required';
+    if (!user.email.trim()) newErrors.email = 'Email is required';
     if (!user.password) newErrors.password = 'Password is required';
 
     if (Object.keys(newErrors).length > 0) {
@@ -84,17 +101,14 @@ const RegisterForm = () => {
               id="name"
               name="name"
               value={user.name}
-              onChange={(e) => {
-                setUser({ ...user, name: e.target.value });
-                if (error.name)
-                  setErrors((prev) => ({ ...prev, name: e.target.value }));
-              }}
-              aria-invalid={!!errors.email}
+              onChange={handleChange('name')}
+              aria-invalid={!!errors.name}
             />
             {errors.name && (
               <p className="text-sm text-destructive">{errors.name}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
@@ -103,49 +117,41 @@ const RegisterForm = () => {
               id="email"
               name="email"
               value={user.email}
-              onChange={(e) => {
-                setUser({ ...user, email: e.target.value });
-                if (errors.email)
-                  setErrors((prev) => ({ ...prev, email: null }));
-              }}
+              onChange={handleChange('email')}
               aria-invalid={!!errors.email}
             />
             {errors.email && (
               <p className="text-sm text-destructive">{errors.email}</p>
             )}
           </div>
+
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              type="password"
+            <PasswordInput
               placeholder="Enter your password"
               id="password"
               name="password"
               value={user.password}
-              onChange={(e) => {
-                setUser({ ...user, password: e.target.value });
-                if (errors.password)
-                  setErrors((prev) => ({ ...prev, password: null }));
-              }}
+              onChange={handleChange('password')}
               aria-invalid={!!errors.password}
             />
             {errors.password && (
               <p className="text-sm text-destructive">{errors.password}</p>
             )}
           </div>
-          <div className="space-y-2">
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading ? (
-                <>
-                  <Loader2 className="size-4 animate-spin" />
-                  Registering...
-                </>
-              ) : (
-                'Register'
-              )}
-            </Button>
-          </div>
+
+          <Button type="submit" disabled={isLoading} className="w-full">
+            {isLoading ? (
+              <>
+                <Loader2 className="size-4 animate-spin" />
+                Registering...
+              </>
+            ) : (
+              'Register'
+            )}
+          </Button>
         </form>
+
         <p className="mt-6 text-center text-sm text-muted-foreground">
           Already have an account?{' '}
           <Link
