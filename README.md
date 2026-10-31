@@ -2,7 +2,7 @@
 
 **A real-time collaborative Kanban workspace inspired by Trello. Multiple users work on the same board, manage tasks, discuss in comments, and see every change instantly, with no refresh.**
 
-### [Live Demo](https://collab-board-ebon-five.vercel.app/) · [Video Walkthrough](#-demo) · [Architecture](#-architecture) · [Engineering Decisions](#-engineering-decisions)
+### [Live Demo](https://collab-board-ebon-five.vercel.app/) · [Video Walkthrough](#demo) · [Architecture](#architecture) · [Engineering Decisions](#engineering-decisions)
 
 ![React](https://img.shields.io/badge/React-61DAFB?logo=react&logoColor=black)
 ![RTK Query](https://img.shields.io/badge/RTK_Query-764ABC?logo=redux&logoColor=white)
@@ -14,9 +14,7 @@
 
 <!-- 👉 HERO GIF: two browser windows side by side. Move a card in one, watch it appear in the other. -->
 
-
 https://github.com/user-attachments/assets/6f7c1ccc-5a18-4f5a-ac01-93a26a56abe6
-
 
 </div>
 
@@ -28,10 +26,10 @@ https://github.com/user-attachments/assets/6f7c1ccc-5a18-4f5a-ac01-93a26a56abe6
 
 > The backend runs on a free tier, so the first request may take ~30 seconds to wake up.
 
-| Account | Email | Password |
-| --- | --- | --- |
-| Demo user 1 | `demo1@example.com` | `your-password` |
-| Demo user 2 | `demo2@example.com` | `your-password` |
+| Account     | Email             | Password |
+| ----------- | ----------------- | -------- |
+| Demo user 1 | `demo1@gmail.com` | `demo@1` |
+| Demo user 2 | `demo2@gmail.com` | `demo@1` |
 
 **See real-time sync:** open the app in two different browsers (or one normal and one incognito window), sign in as each demo user, open the same board, and move a card.
 
@@ -53,18 +51,18 @@ The interesting part wasn't CRUD. Real-time collaboration forced me to solve:
 
 ## Features
 
-| Area | Details |
-| --- | --- |
-| **Boards, lists, cards** | Create boards, organize work in lists, and manage cards with title, description, due date, labels and assignees |
-| **Drag & drop** | Reorder within a list or move across lists, using fractional ordering so one drag updates one document |
-| **Live collaboration** | Card create / update / move / delete appear instantly for everyone on the board (Socket.io board rooms) |
-| **Role-based access** | `owner > editor > viewer`, enforced server-side on every REST route and socket event |
-| **Invitations** | In-app invite flow with `pending → accepted / declined / expired / revoked` states |
-| **Comments** | Comment thread on each card |
-| **Activity log** | Board-level history of meaningful events (task moved, role changed, comment added, …) |
-| **Conflict detection** | Optimistic concurrency via a `version` field; stale writes return `409 Conflict` |
-| **Reconnection handling** | Rejoins the board room and refetches the latest state after a dropped connection |
-| **Live role changes** | Role updates and member removal take effect for connected users |
+| Area                      | Details                                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Boards, lists, cards**  | Create boards, organize work in lists, and manage cards with title, description, due date, labels and assignees |
+| **Drag & drop**           | Reorder within a list or move across lists, using fractional ordering so one drag updates one document          |
+| **Live collaboration**    | Card create / update / move / delete appear instantly for everyone on the board (Socket.io board rooms)         |
+| **Role-based access**     | `owner > editor > viewer`, enforced server-side on every REST route and socket event                            |
+| **Invitations**           | In-app invite flow with `pending → accepted / declined / expired / revoked` states                              |
+| **Comments**              | Comment thread on each card                                                                                     |
+| **Activity log**          | Board-level history of meaningful events (task moved, role changed, comment added, …)                           |
+| **Conflict detection**    | Optimistic concurrency via a `version` field; stale writes return `409 Conflict`                                |
+| **Reconnection handling** | Rejoins the board room and refetches the latest state after a dropped connection                                |
+| **Live role changes**     | Role updates and member removal take effect for connected users                                                 |
 
 ---
 
@@ -82,26 +80,23 @@ https://github.com/user-attachments/assets/6f7c1ccc-5a18-4f5a-ac01-93a26a56abe6
 
 https://github.com/user-attachments/assets/e8af2a51-056e-42e9-8c54-52b643b0832e
 
-
 <!-- <img src="docs/media/viewer-forbidden.gif" alt="Viewer blocked with 403 when trying to edit" width="800" /> -->
 
 ### Concurrency: stale update → 409
 
-
 https://github.com/user-attachments/assets/9883ab77-0c66-47d6-8856-757b9c6ca7f5
-
 
 ### Screenshots
 
-| Dashboard | Board |
-| --- | --- |
+| Dashboard                                                                                                                                       | Board                                                                                                                                       |
+| ----------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
 | <img width="1710" height="987" alt="Dashboard Preview" src="https://github.com/user-attachments/assets/14000cdd-e1df-4251-8ae7-6367996f877f" /> | <img width="1710" height="987" alt="Board Preview" src="https://github.com/user-attachments/assets/a14cff5e-1985-4217-8fd9-2bd5ab56a41c" /> |
 
-| Card details & comments | Members & invitations |
-| --- | --- |
+| Card details & comments                                                                                                                                  | Members & invitations                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
 | <img width="1710" height="987" alt="Card Preview with comments" src="https://github.com/user-attachments/assets/2a82fc71-a902-4652-979b-0da8376f4a0b" /> | <img width="1710" height="987" alt="image" src="https://github.com/user-attachments/assets/beaf939b-d4d5-45ae-b2b2-8b5d653691aa" /> |
 
-**Full walkthrough (2–3 min):** [Watch on YouTube / Loom](#)
+<!-- **Full walkthrough (2–3 min):** [Watch on YouTube / Loom](#) -->
 
 ---
 
@@ -126,10 +121,10 @@ Services
 MongoDB
 ```
 
-| Layer | Responsibility |
-| --- | --- |
-| **REST** | Auth, initial board load, CRUD. The source of truth for request/response operations |
-| **Socket.io** | Live synchronization, pushing state changes to connected collaborators |
+| Layer         | Responsibility                                                                                               |
+| ------------- | ------------------------------------------------------------------------------------------------------------ |
+| **REST**      | Auth, initial board load, CRUD. The source of truth for request/response operations                          |
+| **Socket.io** | Live synchronization, pushing state changes to connected collaborators                                       |
 | **RTK Query** | Client cache: tag invalidation for REST mutations, `updateQueryData` for socket events, refetch on reconnect |
 
 ### Real-time flow
@@ -155,16 +150,16 @@ User ─< BoardMember >─ Board
                          └─< ActivityLog
 ```
 
-| Collection | Notes |
-| --- | --- |
-| `User` | `name`, `email` (unique), `passwordHash` (bcrypt), `avatarUrl` |
-| `Board` | `title`, `description`, `ownerId` |
-| `BoardMember` | `boardId`, `userId`, `role`, `invitedBy`, `joinedAt`. Unique index on `(boardId, userId)` |
-| `List` | `boardId`, `title`, `order` |
-| `Card` | `boardId`, `listId`, `title`, `description`, `dueDate`, `labels`, `assigneeIds`, `order`, `createdBy`, **`version`** |
-| `Comment` | `cardId`, `authorId`, `body`, `editedAt` |
-| `ActivityLog` | `boardId`, `actorId`, `type`, `targetId`, `metadata` |
-| `Invite` | `boardId`, `inviteeId`, `role`, `status`. Partial unique index on `(boardId, inviteeId)` where `status = 'pending'` |
+| Collection    | Notes                                                                                                                |
+| ------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `User`        | `name`, `email` (unique), `passwordHash` (bcrypt), `avatarUrl`                                                       |
+| `Board`       | `title`, `description`, `ownerId`                                                                                    |
+| `BoardMember` | `boardId`, `userId`, `role`, `invitedBy`, `joinedAt`. Unique index on `(boardId, userId)`                            |
+| `List`        | `boardId`, `title`, `order`                                                                                          |
+| `Card`        | `boardId`, `listId`, `title`, `description`, `dueDate`, `labels`, `assigneeIds`, `order`, `createdBy`, **`version`** |
+| `Comment`     | `cardId`, `authorId`, `body`, `editedAt`                                                                             |
+| `ActivityLog` | `boardId`, `actorId`, `type`, `targetId`, `metadata`                                                                 |
+| `Invite`      | `boardId`, `inviteeId`, `role`, `status`. Partial unique index on `(boardId, inviteeId)` where `status = 'pending'`  |
 
 **Why a separate `BoardMember` collection?** A user can have a different role on each board (owner on Board A, viewer on Board B). A join collection models that cleanly, makes "all boards I'm on" a single indexed query, and avoids unbounded arrays on `Board`.
 
@@ -173,9 +168,11 @@ User ─< BoardMember >─ Board
 ## Engineering Decisions
 
 ### 1. Authentication ≠ Authorization
-JWT middleware proves *who* you are. A reusable `requireRole('editor')` middleware proves *what you can do on this board*. Hiding buttons in the UI is UX; the server is the security boundary. A Viewer sending a manual `PATCH` from DevTools gets `403 Forbidden`.
+
+JWT middleware proves _who_ you are. A reusable `requireRole('editor')` middleware proves _what you can do on this board_. Hiding buttons in the UI is UX; the server is the security boundary. A Viewer sending a manual `PATCH` from DevTools gets `403 Forbidden`.
 
 ### 2. Parent-child ownership validation
+
 Membership alone isn't enough. Each nested request verifies the hierarchy:
 
 ```js
@@ -186,39 +183,47 @@ const card = await Card.findOne({ _id: cardId, listId });
 This blocks cross-board ID attacks (Board A + List B + Card B).
 
 ### 3. Optimistic concurrency control
+
 The client sends the `version` it last saw. The server applies the update only if that version is still current, and increments it:
 
 ```js
 Card.findOneAndUpdate(
   { _id: cardId, version: clientVersion },
   { $set: fields, $inc: { version: 1 } },
-  { new: true }
+  { new: true },
 );
 ```
 
 If another write landed first, no document matches and the server returns **`409 Conflict`** instead of overwriting newer data.
 
 ### 4. Socket security
+
 - User identity comes from the **verified JWT in the socket handshake**, never from a client-sent `userId`
 - `joinBoard` checks `BoardMember` **before** `socket.join(boardId)`
 - Every socket mutation re-checks the user's **current** role
 
 ### 5. Fractional ordering
+
 `order = (prevOrder + nextOrder) / 2`, so a drag updates **one** card instead of reindexing every card below it. Because repeated inserts shrink the gap, a normalization pass is the planned maintenance strategy.
 
 ### 6. Transactions for multi-step changes
+
 Invitation acceptance (create `BoardMember` + mark `Invite` accepted) and cascading board deletion run in MongoDB transactions. Socket events like `board:deleted` are emitted **only after the commit**, so clients never react to something that later rolled back.
 
 ### 7. Invite history vs. current membership
-`Invite` stores history and `BoardMember` stores current membership. A **partial unique index** allows only one *pending* invite per board/user pair while still allowing multiple historical ones.
+
+`Invite` stores history and `BoardMember` stores current membership. A **partial unique index** allows only one _pending_ invite per board/user pair while still allowing multiple historical ones.
 
 ### 8. Reconnection
+
 Events can be missed while offline. On reconnect the client rejoins the room and refetches the board, so server state wins over stale local state.
 
 ### 9. `version` vs. activity log
+
 `version` protects **data consistency**; the activity log is **human-readable history**. A same-list reorder bumps `version` but doesn't write an activity entry, which keeps the feed from flooding.
 
 ### Deliberate scope decisions
+
 - **Task-level collaboration, not character-level.** No CRDT/OT; conflicts are handled with version checks.
 - **In-app invitations** for existing users instead of email-token invites.
 - **Single-server** Socket.io (see [Scaling](#-scaling-notes)).
@@ -239,15 +244,15 @@ Events can be missed while offline. On reconnect the client rejoins the room and
 
 ## API Overview
 
-| Group | Examples |
-| --- | --- |
-| **Auth** | `POST /api/auth/register` · `POST /api/auth/login` · `GET /api/auth/me` |
-| **Boards** | `GET/POST /api/boards` · `GET/PATCH/DELETE /api/boards/:boardId` |
-| **Members** | `GET /api/boards/:boardId/members` · `PATCH/DELETE …/members/:userId` |
-| **Invites** | create · list · accept · decline |
-| **Lists & cards** | CRUD, plus move (`listId`, `order`, `version`) |
-| **Comments** | `GET/POST` per card |
-| **Activity** | `GET /api/boards/:boardId/activity` |
+| Group             | Examples                                                                |
+| ----------------- | ----------------------------------------------------------------------- |
+| **Auth**          | `POST /api/auth/register` · `POST /api/auth/login` · `GET /api/auth/me` |
+| **Boards**        | `GET/POST /api/boards` · `GET/PATCH/DELETE /api/boards/:boardId`        |
+| **Members**       | `GET /api/boards/:boardId/members` · `PATCH/DELETE …/members/:userId`   |
+| **Invites**       | create · list · accept · decline                                        |
+| **Lists & cards** | CRUD, plus move (`listId`, `order`, `version`)                          |
+| **Comments**      | `GET/POST` per card                                                     |
+| **Activity**      | `GET /api/boards/:boardId/activity`                                     |
 
 **Socket events:** `task:created` · `task:updated` · `task:moved` · `task:deleted` · `column:updated` · `comment:created` · `member:role_changed` · `member:removed` · `board:deleted` · `activity:new`
 
@@ -255,6 +260,7 @@ Events can be missed while offline. On reconnect the client rejoins the room and
 
 ---
 
+<!--
 ## Run Locally
 
 ### Prerequisites
@@ -298,31 +304,53 @@ cd server && npm run dev
 cd client && npm run dev
 ```
 
-Open `http://localhost:5173`.
+Open `http://localhost:5173`. -->
 
 <!-- ✏️ Update variable names, ports and scripts to match your project (e.g. CRA uses REACT_APP_ instead of VITE_). -->
 
----
+<!-- --- -->
 
 ## Project Structure
 
 ```
-.
-├── client/                  # React app
-│   └── src/
-│       ├── app/             # store + RTK Query API
-│       ├── features/        # boards, cards, auth, invites
-│       ├── components/
-│       └── socket/          # socket client + handlers
-├── server/
-│   └── src/
-│       ├── middleware/      # auth, requireRole, ownership, errors
-│       ├── models/
-│       ├── routes/
-│       ├── controllers/
-│       ├── services/
-│       └── sockets/
-└── docs/media/              # README screenshots and GIFs
+collab-board/
+│
+├── backend/
+│   ├── src/
+│   │   ├── api/
+│   │   │   ├── controllers/    # Handle API requests and responses
+│   │   │   ├── middlewares/    # Authentication and authorization
+│   │   │   ├── models/         # MongoDB data models
+│   │   │   ├── routes/         # API endpoint definitions
+│   │   │   └── services/       # Core business logic
+│   │   │
+│   │   ├── config/
+│   │   ├── app.js
+│   │   └── server.js           # Server and Socket.io initialization
+│   │
+│   └── package.json
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/         # Reusable UI and feature components
+│   │   │   ├── auth/
+│   │   │   ├── board/
+│   │   │   ├── dashboard/
+│   │   │   └── invitation/
+│   │   │
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── layout/             # Application layouts
+│   │   ├── lib/                # Shared libraries and configurations
+│   │   ├── pages/              # Application pages
+│   │   ├── services/           # API integration (RTK Query)
+│   │   ├── store/              # Redux state management
+│   │   ├── App.jsx
+│   │   └── main.jsx
+│   │
+│   ├── package.json
+│   └── vite.config.js
+│
+└── README.md
 ```
 
 <!-- ✏️ Replace with your real folder tree. -->
@@ -335,20 +363,6 @@ The current implementation is **single-server**: Socket.io room state lives in p
 
 ---
 
-## Roadmap
-
-- [ ] Rate limiting on login and invitation endpoints
-- [ ] Fractional-order normalization job
-- [ ] Presence indicators and "user is typing"
-- [ ] Reusable board-level labels
-- [ ] Redis adapter for horizontal scaling
-- [ ] Email-based invitations
-- [ ] Automated tests for RBAC, concurrency and invite flows
-
-<!-- ✏️ Remove anything you've already built or don't plan to build. -->
-
----
-
 ## Key Takeaway
 
 > Real-time collaboration isn't just sending WebSocket events. It required solving authorization, resource ownership, stale state, concurrency, reconnects and data consistency, so that **the server stays the source of truth**.
@@ -357,7 +371,7 @@ The current implementation is **single-server**: Socket.io room state lives in p
 
 ## Author
 
-**Rajiv Kumar** · [LinkedIn](#) · [Portfolio](#) · [GitHub](#)
+**Rajiv Kumar** · [Portfolio](https://my-portfolio-nine-green-69.vercel.app/) · [GitHub](https://github.com/Rajiv-0920)
 
 <div align="center">
 

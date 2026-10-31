@@ -134,7 +134,7 @@ export const updateCardService = async ({
       'Card was modified by another user. Please refresh and try again.',
     );
 
-    error.statusCode = 409;
+    error.status = 409;
     throw error;
   }
 
